@@ -4,6 +4,7 @@
 
 - Gateway services such as Wachter receive HTTP requests that may already contain Woody (`woody.*`, `x-woody-*`) and W3C (`traceparent`) tracing headers.
 - Current Wachter implementation normalizes incoming headers, hydrates Woody `TraceContext`, ensures OpenTelemetry SERVER spans are created, and forwards normalized headers to downstream Woody RPC clients.
+- The `woody_java` library remains the tracing foundation: the bridge focuses on HTTP transport glue while reusing the standard header/MDC facilities described in `woody_trace_enhancement_plan.md`.
 - OpenTelemetry requires explicit SERVER span lifecycle management (status, errors, `span.end()`), while Woody RPC handles span lifecycle internally once the Woody flow is forked.
 - HTTP clients that call Wachter expect plain HTTP responses; Woody-specific response metadata is only required on the RPC leg.
 
@@ -14,7 +15,7 @@ Create a reusable "Woody HTTP Bridge" starter that bridges HTTP traffic with Woo
 1. Extract and normalize Woody/W3C headers from incoming HTTP requests.
 2. Hydrate the current Woody `TraceContext` before executing business logic.
 3. Ensure an OpenTelemetry SERVER span is started, annotated, and completed per spec.
-4. Provide helpers for forwarding normalized headers when making downstream Woody RPC calls.
+4. Provide helpers for forwarding normalized headers when making downstream Woody RPC calls, delegating codec constants and normalizers to `woody_java` wherever possible.
 
 ## Implementation Plan
 
@@ -37,6 +38,7 @@ Create a reusable "Woody HTTP Bridge" starter that bridges HTTP traffic with Woo
 
 5. **Configuration & Extensibility**
    - Spring Boot auto-configuration with properties to enable/disable components, customize header mappings, and swap storage strategies.
+   - Extension hooks for plugging in helper classes from `woody_java` (e.g., MDC utilities or shared header codecs).
    - Fallback manual registration API for non-Spring environments.
 
 6. **Testing & Examples**
