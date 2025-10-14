@@ -1,4 +1,4 @@
-package dev.vality.woody.http.bridge.tracing;
+package dev.vality.woody.http.bridge;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.common.AttributeKey;
