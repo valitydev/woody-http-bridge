@@ -16,7 +16,10 @@ import io.opentelemetry.semconv.ServiceAttributes;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -24,7 +27,9 @@ import java.time.Duration;
 
 @Slf4j
 @Configuration
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnProperty(value = "otel.enabled", havingValue = "true", matchIfMissing = true)
+@EnableConfigurationProperties(OtelConfigProperties.class)
 @RequiredArgsConstructor
 public class OtelConfig {
 
@@ -34,6 +39,7 @@ public class OtelConfig {
     private String applicationName;
 
     @Bean
+    @ConditionalOnMissingBean
     public OpenTelemetry openTelemetryConfig() {
         var resource = Resource.getDefault()
                 .merge(Resource.create(Attributes.of(ServiceAttributes.SERVICE_NAME, applicationName)));
