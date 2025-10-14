@@ -136,7 +136,6 @@ public final class WoodyTracingFilter extends OncePerRequestFilter {
         try {
             token = secretService.getVaultToken(tokenKey);
         } catch (Throwable ex) {
-            log.warn("Unable to obtain vault token by key {}", tokenKey, ex);
             respondForbidden(response, requestPath, "Vault token unavailable");
             return;
         }
