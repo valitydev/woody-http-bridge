@@ -1,6 +1,6 @@
-package dev.vality.woody.http.bridge;
+package dev.vality.woody.http.bridge.tracing;
 
-import dev.vality.woody.http.bridge.TracingProperties.ResponseHeaderMode;
+import dev.vality.woody.http.bridge.properties.TracingProperties.ResponseHeaderMode;
 import dev.vality.woody.api.flow.error.WErrorDefinition;
 import dev.vality.woody.api.flow.error.WErrorSource;
 import dev.vality.woody.api.flow.error.WErrorType;
@@ -23,21 +23,21 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import static dev.vality.woody.http.bridge.TraceHeadersConstants.ExternalHeaders.*;
-import static dev.vality.woody.http.bridge.TraceHeadersConstants.*;
+import static dev.vality.woody.http.bridge.tracing.TraceHeadersConstants.ExternalHeaders.*;
+import static dev.vality.woody.http.bridge.tracing.TraceHeadersConstants.*;
 
 @Slf4j
 public final class WoodyTraceResponseHandler {
 
     private final THProviderErrorMapper errorMapper = new THProviderErrorMapper();
 
-    void handleSuccess(HttpServletResponse response, ResponseHeaderMode responseHeaderMode) {
+    public void handleSuccess(HttpServletResponse response, ResponseHeaderMode responseHeaderMode) {
         var traceData = TraceContext.getCurrentTraceData();
         recordOtelSpanStatus(traceData, response.getStatus());
         applyHeaders(response, traceData, null, responseHeaderMode);
     }
 
-    void handleWoodyException(HttpServletResponse response, Throwable throwable,
+    public void handleWoodyException(HttpServletResponse response, Throwable throwable,
                               ResponseHeaderMode responseHeaderMode) {
         var traceData = TraceContext.getCurrentTraceData();
         var responseInfo = resolveResponseInfo(traceData, throwable);
@@ -47,7 +47,7 @@ public final class WoodyTraceResponseHandler {
         flushQuietly(response);
     }
 
-    void handleUnexpectedError(HttpServletResponse response, Throwable throwable,
+    public void handleUnexpectedError(HttpServletResponse response, Throwable throwable,
                                ResponseHeaderMode responseHeaderMode) {
         var traceData = TraceContext.getCurrentTraceData();
         var responseInfo = resolveResponseInfo(traceData, fallbackDefinition(throwable));
@@ -57,7 +57,7 @@ public final class WoodyTraceResponseHandler {
         flushQuietly(response);
     }
 
-    void recordOtelSpanException(Throwable throwable) {
+    public void recordOtelSpanException(Throwable throwable) {
         var traceData = TraceContext.getCurrentTraceData();
         recordOtelSpanException(traceData, null, throwable);
     }

@@ -1,4 +1,4 @@
-package dev.vality.woody.http.bridge;
+package dev.vality.woody.http.bridge.tracing;
 
 import dev.vality.woody.api.trace.context.metadata.user.UserIdentityEmailExtensionKit;
 import dev.vality.woody.api.trace.context.metadata.user.UserIdentityIdExtensionKit;

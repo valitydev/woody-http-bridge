@@ -1,5 +1,8 @@
 package dev.vality.woody.http.bridge;
 
+import dev.vality.woody.http.bridge.properties.TracingProperties;
+import dev.vality.woody.http.bridge.tracing.WoodyTraceResponseHandler;
+import dev.vality.woody.http.bridge.tracing.WoodyTracingFilter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -7,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @Slf4j
-public class WebConfig {
+public class WoodyTracingConfig {
 
     @Bean
     public FilterRegistrationBean<WoodyTracingFilter> woodyTracingFilter(TracingProperties tracingProperties) {

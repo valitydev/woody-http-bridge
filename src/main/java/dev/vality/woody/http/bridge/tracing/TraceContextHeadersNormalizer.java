@@ -1,6 +1,6 @@
-package dev.vality.woody.http.bridge;
+package dev.vality.woody.http.bridge.tracing;
 
-import dev.vality.woody.http.bridge.JwtTokenDetailsExtractor;
+import dev.vality.woody.http.bridge.util.JwtTokenDetailsExtractor;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
@@ -11,8 +11,8 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
-import static dev.vality.woody.http.bridge.TraceHeadersConstants.*;
-import static dev.vality.woody.http.bridge.DeadlineUtil.*;
+import static dev.vality.woody.http.bridge.tracing.TraceHeadersConstants.*;
+import static dev.vality.woody.http.bridge.util.DeadlineUtil.*;
 
 @Slf4j
 @UtilityClass

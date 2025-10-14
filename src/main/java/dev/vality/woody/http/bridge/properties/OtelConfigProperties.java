@@ -1,4 +1,4 @@
-package dev.vality.woody.http.bridge;
+package dev.vality.woody.http.bridge.properties;
 
 import lombok.Getter;
 import lombok.Setter;

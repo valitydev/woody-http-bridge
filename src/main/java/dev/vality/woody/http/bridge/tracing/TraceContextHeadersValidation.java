@@ -1,4 +1,4 @@
-package dev.vality.woody.http.bridge;
+package dev.vality.woody.http.bridge.tracing;
 
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
@@ -6,7 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import static dev.vality.woody.http.bridge.TraceHeadersConstants.*;
+import static dev.vality.woody.http.bridge.tracing.TraceHeadersConstants.*;
 
 @Slf4j
 @UtilityClass

@@ -1,4 +1,4 @@
-package dev.vality.woody.http.bridge;
+package dev.vality.woody.http.bridge.util;
 
 import jakarta.annotation.Nullable;
 import lombok.experimental.UtilityClass;

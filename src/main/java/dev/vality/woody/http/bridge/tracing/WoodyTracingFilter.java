@@ -1,7 +1,8 @@
-package dev.vality.woody.http.bridge;
+package dev.vality.woody.http.bridge.tracing;
 
 import dev.vality.woody.api.flow.WFlow;
 import dev.vality.woody.api.flow.error.WRuntimeException;
+import dev.vality.woody.http.bridge.properties.TracingProperties;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -17,7 +18,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static dev.vality.woody.http.bridge.TracingProperties.*;
+import static dev.vality.woody.http.bridge.properties.TracingProperties.*;
 
 @Slf4j
 @RequiredArgsConstructor

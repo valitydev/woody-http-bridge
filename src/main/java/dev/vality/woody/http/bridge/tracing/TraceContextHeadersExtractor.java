@@ -1,4 +1,4 @@
-package dev.vality.woody.http.bridge;
+package dev.vality.woody.http.bridge.tracing;
 
 import dev.vality.woody.api.trace.context.TraceContext;
 import io.opentelemetry.api.GlobalOpenTelemetry;
@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-import static dev.vality.woody.http.bridge.TraceHeadersConstants.*;
+import static dev.vality.woody.http.bridge.tracing.TraceHeadersConstants.*;
 
 @Slf4j
 @UtilityClass

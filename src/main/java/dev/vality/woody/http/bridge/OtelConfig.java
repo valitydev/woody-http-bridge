@@ -1,5 +1,6 @@
 package dev.vality.woody.http.bridge;
 
+import dev.vality.woody.http.bridge.properties.OtelConfigProperties;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.common.Attributes;
