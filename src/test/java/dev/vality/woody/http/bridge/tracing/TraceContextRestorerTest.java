@@ -1,5 +1,6 @@
 package dev.vality.woody.http.bridge.tracing;
 
+import dev.vality.woody.api.generator.ConfiguredSnowflakeIdGenerator;
 import dev.vality.woody.api.trace.TraceData;
 import dev.vality.woody.api.trace.context.TraceContext;
 import dev.vality.woody.http.bridge.tracing.TraceContextRestorer;
@@ -63,8 +64,7 @@ class TraceContextRestorerTest {
         assertEquals(Instant.parse("2030-01-01T00:00:00Z"), span.getDeadline());
         assertNotNull(traceData.getServiceSpan().getSpan().getTraceId());
         assertNotNull(traceData.getServiceSpan().getSpan().getId());
-        assertTrue(traceData.getOtelSpan().getSpanContext().isValid());
-        assertNotNull(traceData.getOtelSpan().getSpanContext().getTraceId());
+        assertOtelSpanInitializedAfterContext(traceData);
     }
 
     @Test
@@ -85,8 +85,7 @@ class TraceContextRestorerTest {
         assertEquals("/internal", metadata.getValue(WoodyMetaHeaders.REALM));
         assertNotNull(traceData.getServiceSpan().getSpan().getTraceId());
         assertNotNull(traceData.getServiceSpan().getSpan().getId());
-        assertTrue(traceData.getOtelSpan().getSpanContext().isValid());
-        assertNotNull(traceData.getOtelSpan().getSpanContext().getTraceId());
+        assertOtelSpanInitializedAfterContext(traceData);
     }
 
     @Test
@@ -104,8 +103,7 @@ class TraceContextRestorerTest {
         assertEquals("2030-12-31T23:59:59Z", metadata.getValue(WoodyMetaHeaders.X_REQUEST_DEADLINE));
         assertNotNull(traceData.getServiceSpan().getSpan().getTraceId());
         assertNotNull(traceData.getServiceSpan().getSpan().getId());
-        assertTrue(traceData.getOtelSpan().getSpanContext().isValid());
-        assertNotNull(traceData.getOtelSpan().getSpanContext().getTraceId());
+        assertOtelSpanInitializedAfterContext(traceData);
     }
 
     @Test
@@ -124,8 +122,7 @@ class TraceContextRestorerTest {
         assertEquals(traceId, parentContext.getTraceId());
         assertNotNull(traceData.getServiceSpan().getSpan().getTraceId());
         assertNotNull(traceData.getServiceSpan().getSpan().getId());
-        assertTrue(traceData.getOtelSpan().getSpanContext().isValid());
-        assertNotNull(traceData.getOtelSpan().getSpanContext().getTraceId());
+        assertOtelSpanInitializedAfterContext(traceData);
     }
 
     @Test
@@ -134,8 +131,7 @@ class TraceContextRestorerTest {
 
         assertNotNull(traceData.getServiceSpan().getSpan().getTraceId());
         assertNotNull(traceData.getServiceSpan().getSpan().getId());
-        assertTrue(traceData.getOtelSpan().getSpanContext().isValid());
-        assertNotNull(traceData.getOtelSpan().getSpanContext().getTraceId());
+        assertOtelSpanInitializedAfterContext(traceData);
     }
 
     @Test
@@ -150,8 +146,7 @@ class TraceContextRestorerTest {
         assertNull(traceData.getServiceSpan().getSpan().getDeadline());
         assertNotNull(traceData.getServiceSpan().getSpan().getTraceId());
         assertNotNull(traceData.getServiceSpan().getSpan().getId());
-        assertTrue(traceData.getOtelSpan().getSpanContext().isValid());
-        assertNotNull(traceData.getOtelSpan().getSpanContext().getTraceId());
+        assertOtelSpanInitializedAfterContext(traceData);
     }
 
     @Test
@@ -167,8 +162,7 @@ class TraceContextRestorerTest {
         assertNull(traceData.getServiceSpan().getSpan().getDeadline());
         assertNotNull(traceData.getServiceSpan().getSpan().getTraceId());
         assertNotNull(traceData.getServiceSpan().getSpan().getId());
-        assertTrue(traceData.getOtelSpan().getSpanContext().isValid());
-        assertNotNull(traceData.getOtelSpan().getSpanContext().getTraceId());
+        assertOtelSpanInitializedAfterContext(traceData);
     }
 
     @Test
@@ -209,8 +203,7 @@ class TraceContextRestorerTest {
         assertEquals(otelTraceId, parentContext.getTraceId());
         assertNotNull(traceData.getServiceSpan().getSpan().getTraceId());
         assertNotNull(traceData.getServiceSpan().getSpan().getId());
-        assertTrue(traceData.getOtelSpan().getSpanContext().isValid());
-        assertNotNull(traceData.getOtelSpan().getSpanContext().getTraceId());
+        assertOtelSpanInitializedAfterContext(traceData);
     }
 
     @Test
@@ -234,8 +227,7 @@ class TraceContextRestorerTest {
         assertNull(metadata.getValue(WoodyMetaHeaders.USERNAME));
         assertNotNull(traceData.getServiceSpan().getSpan().getTraceId());
         assertNotNull(traceData.getServiceSpan().getSpan().getId());
-        assertTrue(traceData.getOtelSpan().getSpanContext().isValid());
-        assertNotNull(traceData.getOtelSpan().getSpanContext().getTraceId());
+        assertOtelSpanInitializedAfterContext(traceData);
     }
 
     @Test
@@ -250,8 +242,7 @@ class TraceContextRestorerTest {
         assertEquals("trace-123", traceData.getServiceSpan().getSpan().getTraceId());
         assertNotNull(traceData.getServiceSpan().getSpan().getTraceId());
         assertNotNull(traceData.getServiceSpan().getSpan().getId());
-        assertTrue(traceData.getOtelSpan().getSpanContext().isValid());
-        assertNotNull(traceData.getOtelSpan().getSpanContext().getTraceId());
+        assertOtelSpanInitializedAfterContext(traceData);
     }
 
     @Test
@@ -270,5 +261,28 @@ class TraceContextRestorerTest {
         assertEquals("user+test@domain.com", metadata.getValue(WoodyMetaHeaders.EMAIL));
         assertEquals("/realm/with/slashes", metadata.getValue(WoodyMetaHeaders.REALM));
         assertEquals("req-with-dashes-123", metadata.getValue(WoodyMetaHeaders.X_REQUEST_ID));
+        assertOtelSpanInitializedAfterContext(traceData);
+    }
+
+    private void assertOtelSpanInitializedAfterContext(TraceData traceData) {
+        var generator = new ConfiguredSnowflakeIdGenerator();
+        TraceData clonedTraceData = traceData.cloneObject();
+        TraceData previous = TraceContext.getCurrentTraceData();
+        TraceContext.setCurrentTraceData(clonedTraceData);
+        var traceContext = new TraceContext(generator);
+        boolean initialized = false;
+        try {
+            traceContext.init();
+            initialized = true;
+            assertTrue(TraceContext.getCurrentTraceData().getOtelSpan().getSpanContext().isValid());
+        } finally {
+            try {
+                if (initialized) {
+                    traceContext.destroy(false);
+                }
+            } finally {
+                TraceContext.setCurrentTraceData(previous);
+            }
+        }
     }
 }
