@@ -1,4 +1,5 @@
 # Woody HTTP Bridge
+[![Maven Central](https://img.shields.io/maven-central/v/dev.vality/woody-http-bridge.svg)](https://central.sonatype.com/artifact/dev.vality/woody-http-bridge)
 
 Spring Boot starter that helps applications proxy HTTP calls while preserving Woody tracing context and OpenTelemetry spans.
 
