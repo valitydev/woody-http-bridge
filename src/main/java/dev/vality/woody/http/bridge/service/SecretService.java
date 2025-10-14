@@ -29,8 +29,21 @@ public record SecretService(VaultSecretService vaultSecretService, String servic
     private static final String FIELD_TRACESTATE = "tracestate";
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
+    private static volatile String cachedCipherSecretKey;
+
     public String getCipherTokenSecretKey() {
-        return vaultSecretService.getSecret(serviceName, new SecretRef(CIPHER_TOKEN, SECRET_KEY)).getValue();
+        var cached = cachedCipherSecretKey;
+        if (cached != null) {
+            return cached;
+        }
+        synchronized (this) {
+            if (cachedCipherSecretKey == null) {
+                cachedCipherSecretKey = vaultSecretService
+                        .getSecret(serviceName, new SecretRef(CIPHER_TOKEN, SECRET_KEY))
+                        .getValue();
+            }
+            return cachedCipherSecretKey;
+        }
     }
 
     public TokenPayload getVaultToken(String tokenKey) {
