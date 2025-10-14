@@ -5,6 +5,7 @@ import dev.vality.adapter.common.secret.SecretRef;
 import dev.vality.adapter.common.secret.SecretValue;
 import dev.vality.adapter.common.secret.VaultSecretService;
 import dev.vality.woody.http.bridge.token.TokenPayload;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
@@ -15,7 +16,8 @@ import java.util.Map;
 import java.util.Objects;
 
 @Slf4j
-public record SecretService(VaultSecretService vaultSecretService, String serviceName) {
+@RequiredArgsConstructor
+public class SecretService {
 
     private static final String SECRET_KEY = "secret_key";
     private static final String CIPHER_TOKEN = "cipher_token";
@@ -29,7 +31,9 @@ public record SecretService(VaultSecretService vaultSecretService, String servic
     private static final String FIELD_TRACESTATE = "tracestate";
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
-    private static volatile String cachedCipherSecretKey;
+    private final VaultSecretService vaultSecretService;
+    private final String serviceName;
+    private volatile String cachedCipherSecretKey;
 
     public String getCipherTokenSecretKey() {
         var cached = cachedCipherSecretKey;
