@@ -115,6 +115,7 @@ public class TokenCipher {
             writeTraceFieldData(data, payload.spanId(), spanIdType, SPAN_ID_HEX_LENGTH);
             writeTraceFieldData(data, payload.newSpanId(), newSpanIdType, SPAN_ID_HEX_LENGTH);
             writeTraceparent(data, payload.traceparent());
+            writeString(data, payload.tracestate() == null ? "" : payload.tracestate());
         }
         return buffer.toByteArray();
     }
@@ -140,6 +141,7 @@ public class TokenCipher {
             var spanId = readTraceFieldData(data, spanIdType, SPAN_ID_HEX_LENGTH);
             var newSpanId = readTraceFieldData(data, newSpanIdType, SPAN_ID_HEX_LENGTH);
             var traceparent = readTraceparent(data);
+            var tracestateRaw = readString(data);
 
             return new TokenPayload(
                     termUrl,
@@ -148,7 +150,8 @@ public class TokenCipher {
                     traceId,
                     spanId,
                     newSpanId,
-                    traceparent
+                    traceparent,
+                    tracestateRaw.isEmpty() ? null : tracestateRaw
             );
         }
     }

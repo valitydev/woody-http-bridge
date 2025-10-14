@@ -26,6 +26,7 @@ public record SecretService(VaultSecretService vaultSecretService, String servic
     private static final String FIELD_SPAN_ID = "span_id";
     private static final String FIELD_NEW_SPAN_ID = "new_span_id";
     private static final String FIELD_TRACEPARENT = "traceparent";
+    private static final String FIELD_TRACESTATE = "tracestate";
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
     public String getCipherTokenSecretKey() {
@@ -47,6 +48,7 @@ public record SecretService(VaultSecretService vaultSecretService, String servic
         var spanId = readValue(secrets, FIELD_SPAN_ID);
         var newSpanId = readValue(secrets, FIELD_NEW_SPAN_ID);
         var traceparent = readValue(secrets, FIELD_TRACEPARENT);
+        var tracestate = readValue(secrets, FIELD_TRACESTATE);
 
         if (termUrl == null || traceId == null || spanId == null || newSpanId == null || traceparent == null) {
             log.warn("Vault secret '{}' for service '{}' missing required token fields", tokenKey, serviceName);
@@ -60,7 +62,8 @@ public record SecretService(VaultSecretService vaultSecretService, String servic
                 traceId,
                 spanId,
                 newSpanId,
-                traceparent
+                traceparent,
+                tracestate
         );
     }
 
@@ -78,6 +81,7 @@ public record SecretService(VaultSecretService vaultSecretService, String servic
         putIfNotNull(values, FIELD_SPAN_ID, payload.spanId());
         putIfNotNull(values, FIELD_NEW_SPAN_ID, payload.newSpanId());
         putIfNotNull(values, FIELD_TRACEPARENT, payload.traceparent());
+        putIfNotNull(values, FIELD_TRACESTATE, payload.tracestate());
 
         vaultSecretService.writeSecret(serviceName, new SecretObj(tokenKey, values));
     }

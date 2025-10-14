@@ -11,6 +11,7 @@ import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -62,12 +63,18 @@ public class TraceContextRestorer {
         span.setTraceId(payload.traceId());
         span.setParentId(payload.spanId());
         span.setId(payload.newSpanId());
+        var carrier = new java.util.HashMap<String, String>();
+        carrier.put(OTEL_TRACE_PARENT, payload.traceparent());
+        if (payload.tracestate() != null && !payload.tracestate().isEmpty()) {
+            carrier.put(OTEL_TRACE_STATE, payload.tracestate());
+        }
         var extracted = GlobalOpenTelemetry.getPropagators()
                 .getTextMapPropagator()
-                .extract(Context.root(), Map.of(OTEL_TRACE_PARENT, payload.traceparent()), HEADER_GETTER);
+                .extract(Context.root(), carrier, HEADER_GETTER);
         if (fromContext(extracted).getSpanContext().isValid()) {
             traceData.setPendingParentContext(extracted);
             traceData.setInboundTraceParent(payload.traceparent());
+            traceData.setInboundTraceState(payload.tracestate());
         }
         return traceData;
     }
