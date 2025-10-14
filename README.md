@@ -26,7 +26,7 @@ No additional setup is required: the auto-configuration registers the tracing fi
 
 ### Tracing
 
-Configure endpoints that should participate in Woody tracing via `woody-http-bridge`:
+Configure endpoints that should participate in Woody tracing via `woody-http-bridge.tracing`:
 
 ```yaml
 woody-http-bridge:
@@ -34,18 +34,15 @@ woody-http-bridge:
     endpoints:
       - path: /api
         port: 8080
-        request-header-mode: WOODY_OR_X_WOODY
-        response-header-mode: HTTP
-        propagate-errors: false
 ```
-
-Disable telemetry entirely by setting `woody-http-bridge.enabled=false`.
 
 Key options:
 
-- `request-header-mode` — how incoming headers are interpreted (`OFF`, `WOODY_OR_X_WOODY`).
-- `response-header-mode` — which headers are written on responses (`OFF`, `WOODY`, `X_WOODY`, `HTTP`).
-- `propagate-errors` — when `true`, exceptions bubble up; otherwise they are converted to Woody error responses.
+- `woody-http-bridge.tracing.endpoints[0].request-header-mode` — how incoming headers are interpreted (`OFF`, `WOODY_OR_X_WOODY`). `OFF` is default.
+- `woody-http-bridge.tracing.endpoints[0].response-header-mode` — which headers are written on responses (`OFF`, `WOODY`, `X_WOODY`, `HTTP`). `OFF` is default.
+- `woody-http-bridge.tracing.endpoints[0].propagate-errors` — when `true`, exceptions bubble up; otherwise they are converted to Woody error responses.
+
+Disable woody-http-bridge.tracing entirely by setting `woody-http-bridge.enabled=false`.
 
 ### OpenTelemetry
 
