@@ -3,6 +3,7 @@ package dev.vality.woody.http.bridge.tracing;
 import dev.vality.woody.api.flow.WFlow;
 import dev.vality.woody.api.trace.TraceData;
 import dev.vality.woody.api.trace.context.TraceContext;
+import dev.vality.woody.http.bridge.token.TokenPayload;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.TextMapGetter;
@@ -14,6 +15,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import static dev.vality.woody.http.bridge.tracing.TraceHeadersConstants.*;
+import static io.opentelemetry.api.trace.Span.*;
 
 @Slf4j
 @UtilityClass
@@ -44,10 +46,28 @@ public class TraceContextRestorer {
         var extracted = GlobalOpenTelemetry.getPropagators()
                 .getTextMapPropagator()
                 .extract(Context.root(), headers, HEADER_GETTER);
-        if (io.opentelemetry.api.trace.Span.fromContext(extracted).getSpanContext().isValid()) {
+        if (fromContext(extracted).getSpanContext().isValid()) {
             traceData.setPendingParentContext(extracted);
             traceData.setInboundTraceParent(headers.get(OTEL_TRACE_PARENT));
             traceData.setInboundTraceState(headers.getOrDefault(OTEL_TRACE_STATE, null));
+        }
+        return traceData;
+    }
+
+    public TraceData restoreTraceData(TokenPayload payload) {
+        log.debug("Restoring trace data from headers: {}", payload);
+        var traceData = TraceContext.initNewServiceTrace(new TraceData(),
+                WFlow.createDefaultIdGenerator(), WFlow.createDefaultIdGenerator());
+        var span = traceData.getActiveSpan().getSpan();
+        span.setTraceId(payload.traceId());
+        span.setParentId(payload.spanId());
+        span.setId(payload.newSpanId());
+        var extracted = GlobalOpenTelemetry.getPropagators()
+                .getTextMapPropagator()
+                .extract(Context.root(), Map.of(OTEL_TRACE_PARENT, payload.traceparent()), HEADER_GETTER);
+        if (fromContext(extracted).getSpanContext().isValid()) {
+            traceData.setPendingParentContext(extracted);
+            traceData.setInboundTraceParent(payload.traceparent());
         }
         return traceData;
     }

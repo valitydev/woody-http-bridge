@@ -40,8 +40,8 @@
 
     <properties>
         <woody.version>2.0.12</woody.version>
-        <otel.instrumentation.version>2.15.0</otel.instrumentation.version>
         <geck.version>1.0.2</geck.version>
+        <otel.instrumentation.version>2.15.0</otel.instrumentation.version>
         <spring-boot.version>3.5.4</spring-boot.version>
     </properties>
 
@@ -101,6 +101,11 @@
             <artifactId>woody-api</artifactId>
             <version>${woody.version}</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>dev.vality</groupId>
+            <artifactId>adapter-common-lib</artifactId>
+            <version>2.0.5</version>
         </dependency>
 
         <!--third party-->

@@ -37,7 +37,9 @@ public class TracingProperties {
 
     public enum RequestHeaderMode {
         OFF,
-        WOODY_OR_X_WOODY
+        WOODY_OR_X_WOODY,
+        CIPHER_TOKEN,
+        VAULT_TOKEN
     }
 
     public enum ResponseHeaderMode {
