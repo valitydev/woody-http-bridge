@@ -3,7 +3,13 @@ package dev.vality.woody.http.bridge.tracing;
 import dev.vality.woody.api.flow.WFlow;
 import dev.vality.woody.api.flow.error.WRuntimeException;
 import dev.vality.woody.http.bridge.properties.TracingProperties;
+import dev.vality.woody.http.bridge.service.SecretService;
+import dev.vality.woody.http.bridge.token.CipherTokenExtractor;
+import dev.vality.woody.http.bridge.token.TokenCipher;
+import dev.vality.woody.http.bridge.token.TokenPayload;
+import dev.vality.woody.http.bridge.token.VaultTokenKeyExtractor;
 import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -11,14 +17,20 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.util.UriUtils;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static dev.vality.woody.http.bridge.properties.TracingProperties.*;
+import static dev.vality.woody.http.bridge.properties.TracingProperties.TracePolicy;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -30,8 +42,15 @@ public final class WoodyTracingFilter extends OncePerRequestFilter {
             HttpHeaders.SET_COOKIE.toLowerCase(Locale.ROOT)
     );
 
+    public static final String CIPHER_TOKEN_ATTRIBUTE = "decryptedCipherTokenPayload";
+    public static final String VAULT_TOKEN_ATTRIBUTE = "decryptedVaultTokenPayload";
+
     private final TracingProperties tracingProperties;
     private final WoodyTraceResponseHandler woodyTraceResponseHandler;
+    private final TokenCipher tokenCipher;
+    private final SecretService secretService;
+    private final CipherTokenExtractor cipherTokenExtractor;
+    private final VaultTokenKeyExtractor vaultTokenKeyExtractor;
 
     @Override
     @SneakyThrows
@@ -47,6 +66,8 @@ public final class WoodyTracingFilter extends OncePerRequestFilter {
         switch (policy.requestHeaderMode()) {
             case OFF -> handleWithoutTraceRestore(request, response, filterChain, policy);
             case WOODY_OR_X_WOODY -> handleWithTraceRestore(request, response, filterChain, policy);
+            case CIPHER_TOKEN -> handleCipherToken(request, response, filterChain, policy);
+            case VAULT_TOKEN -> handleVaultToken(request, response, filterChain, policy);
             default -> filterChain.doFilter(request, response);
         }
     }
@@ -69,6 +90,71 @@ public final class WoodyTracingFilter extends OncePerRequestFilter {
         var normalized = TraceContextHeadersNormalizer.normalize(request);
         var headersForTrace = TraceContextHeadersValidation.validate(normalized);
         var restoredTraceData = TraceContextRestorer.restoreTraceData(headersForTrace);
+        WFlow.create(() -> {
+            logReceived(request);
+            doFilterWithTraceHandling(request, response, filterChain, policy);
+            logSent(request, response);
+        }, restoredTraceData).run();
+    }
+
+    private void handleCipherToken(HttpServletRequest request,
+                                   HttpServletResponse response,
+                                   FilterChain filterChain,
+                                   TracePolicy policy) throws IOException, ServletException {
+        var requestPath = getRequestPath(request);
+        var resolvedToken = cipherTokenExtractor.extractToken(request);
+        if (resolvedToken == null || resolvedToken.isBlank()) {
+            respondForbidden(response, requestPath, "Empty cipher token");
+            return;
+        }
+        final String decodedToken;
+        try {
+            decodedToken = UriUtils.decode(resolvedToken, StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException decodeError) {
+            respondForbidden(response, requestPath, "Failed to decode cipher token");
+            return;
+        }
+        var payload = decryptAndValidate(decodedToken, requestPath, policy);
+        if (payload == null) {
+            respondForbidden(response, requestPath, "Invalid cipher token payload");
+            return;
+        }
+        proceedWithTokenPayload(request, response, filterChain, policy, payload, CIPHER_TOKEN_ATTRIBUTE);
+    }
+
+    private void handleVaultToken(HttpServletRequest request,
+                                  HttpServletResponse response,
+                                  FilterChain filterChain,
+                                  TracePolicy policy) throws IOException, ServletException {
+        var requestPath = getRequestPath(request);
+        var tokenKey = vaultTokenKeyExtractor.extractTokenKey(request);
+        if (tokenKey == null || tokenKey.isBlank()) {
+            respondForbidden(response, requestPath, "Empty vault token key");
+            return;
+        }
+        final TokenPayload token;
+        try {
+            token = secretService.getVaultToken(tokenKey);
+        } catch (Throwable ex) {
+            log.warn("Unable to obtain vault token by key {}", tokenKey, ex);
+            respondForbidden(response, requestPath, "Vault token unavailable");
+            return;
+        }
+        if (token == null || isExpired(token.timestamp(), policy.tokenTtl())) {
+            respondForbidden(response, requestPath, "Invalid cipher token payload");
+            return;
+        }
+        proceedWithTokenPayload(request, response, filterChain, policy, token, VAULT_TOKEN_ATTRIBUTE);
+    }
+
+    private void proceedWithTokenPayload(HttpServletRequest request,
+                                         HttpServletResponse response,
+                                         FilterChain filterChain,
+                                         TracePolicy policy,
+                                         TokenPayload payload,
+                                         String attributeName) throws IOException, ServletException {
+        request.setAttribute(attributeName, payload);
+        var restoredTraceData = TraceContextRestorer.restoreTraceData(payload);
         WFlow.create(() -> {
             logReceived(request);
             doFilterWithTraceHandling(request, response, filterChain, policy);
@@ -109,6 +195,41 @@ public final class WoodyTracingFilter extends OncePerRequestFilter {
     private void logSent(HttpServletRequest request, HttpServletResponse response) {
         log.info("<- Sent {} {} | status: {}, headers: {}", request.getMethod(), getRequestPath(request),
                 response.getStatus(), sanitizeResponseHeaders(response));
+    }
+
+    private TokenPayload decryptAndValidate(String token, String requestPath, TracePolicy policy) {
+        if (tokenCipher == null || secretService == null) {
+            log.warn("Decrypt attempt skipped due to misconfiguration for {}", requestPath);
+            return null;
+        }
+        final TokenPayload payload;
+        try {
+            payload = tokenCipher.decrypt(token, secretService.getCipherTokenSecretKey());
+        } catch (Throwable ex) {
+            log.warn("Failed to decrypt tracing token {}", token, ex);
+            return null;
+        }
+        if (isExpired(payload.timestamp(), policy.tokenTtl())) {
+            log.warn("Tracing token expired for payload {}", payload);
+            return null;
+        }
+        return payload;
+    }
+
+    private boolean isExpired(LocalDateTime issuedAt, Duration ttl) {
+        if (issuedAt == null || ttl == null || ttl.isNegative() || ttl.isZero()) {
+            return false;
+        }
+        var now = LocalDateTime.now(ZoneOffset.UTC);
+        return issuedAt.plus(ttl).isBefore(now);
+    }
+
+    private void respondForbidden(HttpServletResponse response,
+                                  String requestPath,
+                                  String reason) throws IOException {
+        var status = HttpServletResponse.SC_FORBIDDEN;
+        log.error("<- Sent [{} {}]: {}", status, requestPath, reason);
+        response.sendError(status, "Invalid token");
     }
 
     public static String extractParams(HttpServletRequest servletRequest) {
@@ -161,7 +282,7 @@ public final class WoodyTracingFilter extends OncePerRequestFilter {
         return headers;
     }
 
-    private static String getRequestPath(HttpServletRequest request) {
+    public static String getRequestPath(HttpServletRequest request) {
         var servletPath = request.getServletPath();
         if (servletPath != null && !servletPath.isBlank()) {
             return servletPath;

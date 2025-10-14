@@ -6,6 +6,7 @@ import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -32,6 +33,8 @@ public class TracingProperties {
         private RequestHeaderMode requestHeaderMode;
         private ResponseHeaderMode responseHeaderMode;
         private Boolean propagateErrors;
+        private String defaultCipherToken;
+        private String tokenTtl;
 
     }
 
@@ -68,10 +71,14 @@ public class TracingProperties {
         var effectiveResponseMode = Optional.ofNullable(endpoint.getResponseHeaderMode()).orElse(DEFAULT_RESPONSE_MODE);
         var effectivePropagate = Optional.ofNullable(endpoint.getPropagateErrors())
                 .orElse(effectiveResponseMode == ResponseHeaderMode.OFF);
-        return new TracePolicy(port, path, effectiveRequestMode, effectiveResponseMode, effectivePropagate);
+        var tokenTtl = Optional.ofNullable(endpoint.getTokenTtl()).map(s -> Duration.ofMinutes(Long.parseLong(s)))
+                .orElse(null);
+        return new TracePolicy(port, path, effectiveRequestMode, effectiveResponseMode, effectivePropagate,
+                endpoint.getDefaultCipherToken(), tokenTtl);
     }
 
     public record TracePolicy(int port, String path, RequestHeaderMode requestHeaderMode,
-                              ResponseHeaderMode responseHeaderMode, boolean propagateErrors) {
+                              ResponseHeaderMode responseHeaderMode, boolean propagateErrors, String defaultCipherToken,
+                              Duration tokenTtl) {
     }
 }

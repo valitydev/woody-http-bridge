@@ -363,6 +363,6 @@ class WoodyTracingFilterTest {
 
     private void rebuildFilter() {
         var lifecycleHandler = new WoodyTraceResponseHandler();
-        filter = new WoodyTracingFilter(tracingProperties, lifecycleHandler);
+        filter = new WoodyTracingFilter(tracingProperties, lifecycleHandler, null, null, null, null);
     }
 }
