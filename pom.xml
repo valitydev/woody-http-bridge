@@ -96,6 +96,12 @@
             <version>${woody.version}</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>dev.vality.woody</groupId>
+            <artifactId>woody-api</artifactId>
+            <version>${woody.version}</version>
+            <scope>provided</scope>
+        </dependency>
 
         <!--third party-->
         <dependency>

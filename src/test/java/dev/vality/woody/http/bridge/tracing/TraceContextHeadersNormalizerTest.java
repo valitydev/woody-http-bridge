@@ -1,5 +1,6 @@
 package dev.vality.woody.http.bridge.tracing;
 
+import dev.vality.woody.http.bridge.tracing.TraceContextHeadersNormalizer;
 import dev.vality.woody.http.bridge.util.JwtTokenDetailsExtractor;
 import dev.vality.woody.http.bridge.util.JwtTokenDetailsExtractor.JwtTokenDetails;
 import jakarta.servlet.http.HttpServletRequest;

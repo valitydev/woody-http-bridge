@@ -9,6 +9,8 @@ import dev.vality.woody.http.bridge.properties.TracingProperties;
 import dev.vality.woody.http.bridge.properties.TracingProperties.Endpoint;
 import dev.vality.woody.http.bridge.properties.TracingProperties.RequestHeaderMode;
 import dev.vality.woody.http.bridge.properties.TracingProperties.ResponseHeaderMode;
+import dev.vality.woody.http.bridge.tracing.WoodyTraceResponseHandler;
+import dev.vality.woody.http.bridge.tracing.WoodyTracingFilter;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
 import io.opentelemetry.context.propagation.ContextPropagators;

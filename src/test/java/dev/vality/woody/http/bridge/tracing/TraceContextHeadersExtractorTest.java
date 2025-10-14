@@ -3,6 +3,7 @@ package dev.vality.woody.http.bridge.tracing;
 import dev.vality.woody.api.flow.WFlow;
 import dev.vality.woody.api.trace.TraceData;
 import dev.vality.woody.api.trace.context.TraceContext;
+import dev.vality.woody.http.bridge.tracing.TraceContextHeadersExtractor;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.Tracer;
@@ -127,7 +128,12 @@ class TraceContextHeadersExtractorTest {
         traceData.setOtelSpan(Span.getInvalid());
         TraceContext.setCurrentTraceData(traceData);
 
-        assertThrows(IllegalStateException.class, TraceContextHeadersExtractor::extractHeaders);
+        try {
+            TraceContextHeadersExtractor.extractHeaders();
+            fail("Expected IllegalStateException");
+        } catch (IllegalStateException e) {
+            // Expected
+        }
     }
 
     @Test
@@ -246,7 +252,9 @@ class TraceContextHeadersExtractorTest {
         TraceContext.setCurrentTraceData(null);
 
         var captured = new AtomicReference<Map<String, String>>();
-        var thread = new Thread(() -> captured.set(TraceContextHeadersExtractor.extractHeaders()));
+        var thread = new Thread(() -> {
+            captured.set(TraceContextHeadersExtractor.extractHeaders());
+        });
         thread.start();
         thread.join();
 
