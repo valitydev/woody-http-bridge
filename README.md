@@ -39,6 +39,7 @@ woody-http-bridge:
 
 Key options:
 
+- `woody-http-bridge.enabled` 
 - `woody-http-bridge.tracing.endpoints[0].request-header-mode` — how incoming headers are interpreted. Supported values: `OFF`, `WOODY_OR_X_WOODY`, `CIPHER_TOKEN`, `VAULT_TOKEN`. `OFF` is default.
 - `woody-http-bridge.tracing.endpoints[0].response-header-mode` — which headers are written on responses (`OFF`, `WOODY`, `X_WOODY`, `HTTP`). `OFF` is default.
 - `woody-http-bridge.tracing.endpoints[0].propagate-errors` — when `true`, exceptions bubble up; otherwise they are converted to Woody error responses.
@@ -51,7 +52,16 @@ Token modes overview:
 - `VAULT_TOKEN` — filter extracts a token key (via `VaultTokenKeyExtractor`), loads a plain `TokenPayload` from `SecretService` (backed by Vault), validates TTL, and restores tracing. Bean `VaultTokenKeyExtractor` can be overridden; default implementation reads the last path segment.
 - `SecretService` keeps Vault tokens in structured form (trace ids, span ids, `traceparent`, `tracestate`) and caches the cipher secret key for encrypted mode.
 
-Disable woody-http-bridge.tracing entirely by setting `woody-http-bridge.enabled=false`.
+Vault integration is optional. To bootstrap the provided Vault support enable it explicitly:
+
+```yaml
+vault:
+  enabled: true
+  uri: https://vault.empayre.com:443
+  token: "xxx"
+```
+
+When disabled (default), the application must provide its own `VaultSecretService`/`SecretService` beans if `VAULT_TOKEN` mode is required.
 
 ### OpenTelemetry
 
@@ -59,6 +69,7 @@ The starter exposes an OTLP exporter that can be controlled with `otel.*` proper
 
 ```yaml
 otel:
+  enabled: true
   resource: http://collector:4318/v1/traces
   timeout: 60000
 ```

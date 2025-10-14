@@ -3,7 +3,11 @@ package dev.vality.woody.http.bridge;
 import dev.vality.adapter.common.secret.VaultSecretService;
 import dev.vality.woody.http.bridge.properties.TracingProperties;
 import dev.vality.woody.http.bridge.service.SecretService;
-import dev.vality.woody.http.bridge.token.*;
+import dev.vality.woody.http.bridge.token.CipherTokenExtractor;
+import dev.vality.woody.http.bridge.token.CipherTokenExtractorImpl;
+import dev.vality.woody.http.bridge.token.TokenCipher;
+import dev.vality.woody.http.bridge.token.VaultTokenKeyExtractor;
+import dev.vality.woody.http.bridge.token.VaultTokenKeyExtractorImpl;
 import dev.vality.woody.http.bridge.tracing.WoodyTraceResponseHandler;
 import dev.vality.woody.http.bridge.tracing.WoodyTracingFilter;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,6 +19,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.lang.Nullable;
 
 @Configuration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
@@ -48,20 +53,12 @@ public class WoodyTracingConfig {
     }
 
     @Bean
-    @ConditionalOnClass(VaultSecretService.class)
-    @ConditionalOnMissingBean
-    public SecretService secretService(VaultSecretService vaultSecretService,
-                                       @Value("${spring.application.name}") String serviceName) {
-        return new SecretService(vaultSecretService, serviceName);
-    }
-
-    @Bean
     @ConditionalOnMissingBean
     public WoodyTracingFilter woodyTracingFilter(
             TracingProperties tracingProperties,
             WoodyTraceResponseHandler woodyTraceResponseHandler,
             TokenCipher tokenCipher,
-            SecretService secretService,
+            @Nullable SecretService secretService,
             CipherTokenExtractor cipherTokenExtractor,
             VaultTokenKeyExtractor vaultTokenKeyExtractor) {
         return new WoodyTracingFilter(

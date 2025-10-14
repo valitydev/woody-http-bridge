@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
+import org.springframework.lang.Nullable;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.UriUtils;
 
@@ -46,7 +47,7 @@ public final class WoodyTracingFilter extends OncePerRequestFilter {
     private final TracingProperties tracingProperties;
     private final WoodyTraceResponseHandler woodyTraceResponseHandler;
     private final TokenCipher tokenCipher;
-    private final SecretService secretService;
+    private final @Nullable SecretService secretService;
     private final CipherTokenExtractor cipherTokenExtractor;
     private final VaultTokenKeyExtractor vaultTokenKeyExtractor;
 
@@ -125,6 +126,10 @@ public final class WoodyTracingFilter extends OncePerRequestFilter {
                                   FilterChain filterChain,
                                   TracePolicy policy) {
         var requestPath = getRequestPath(request);
+        if (secretService == null) {
+            respondForbidden(response, requestPath, "Vault token support is not configured");
+            return;
+        }
         var tokenKey = vaultTokenKeyExtractor.extractTokenKey(request);
         if (tokenKey == null || tokenKey.isBlank()) {
             respondForbidden(response, requestPath, "Empty vault token key");
