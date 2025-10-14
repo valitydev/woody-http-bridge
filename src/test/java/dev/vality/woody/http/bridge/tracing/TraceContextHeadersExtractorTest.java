@@ -5,8 +5,7 @@ import dev.vality.woody.api.trace.TraceData;
 import dev.vality.woody.api.trace.context.TraceContext;
 import dev.vality.woody.http.bridge.tracing.TraceContextHeadersExtractor;
 import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
 import io.opentelemetry.context.propagation.ContextPropagators;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
@@ -15,9 +14,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
 import java.time.Instant;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static dev.vality.woody.http.bridge.tracing.TraceHeadersConstants.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -25,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.*;
 class TraceContextHeadersExtractorTest {
 
     private SdkTracerProvider tracerProvider;
-    private Tracer tracer;
 
     @BeforeEach
     void setUp() {
@@ -36,7 +34,6 @@ class TraceContextHeadersExtractorTest {
                 .setPropagators(ContextPropagators.create(W3CTraceContextPropagator.getInstance()))
                 .build();
         GlobalOpenTelemetry.set(openTelemetry);
-        tracer = openTelemetry.getTracer("test");
     }
 
     @AfterEach
@@ -51,8 +48,7 @@ class TraceContextHeadersExtractorTest {
     @Test
     void shouldExtractWoodyHeadersFromTraceContext() {
         final var traceData = new TraceData();
-        final var otelSpan = tracer.spanBuilder("test-span").startSpan();
-        traceData.setOtelSpan(otelSpan);
+        attachOtelSpan(traceData);
         TraceContext.setCurrentTraceData(traceData);
 
         final var activeSpan = traceData.getActiveSpan();
@@ -73,14 +69,13 @@ class TraceContextHeadersExtractorTest {
         assertTrue(headers.containsKey(WOODY_SPAN_ID));
         assertTrue(headers.containsKey(OTEL_TRACE_PARENT));
 
-        otelSpan.end();
+        traceData.finishOtelSpan();
     }
 
     @Test
     void shouldExtractOnlyAvailableHeaders() {
         final var traceData = new TraceData();
-        final var otelSpan = tracer.spanBuilder("test-span").startSpan();
-        traceData.setOtelSpan(otelSpan);
+        attachOtelSpan(traceData);
         TraceContext.setCurrentTraceData(traceData);
 
         final var activeSpan = traceData.getActiveSpan();
@@ -97,14 +92,13 @@ class TraceContextHeadersExtractorTest {
         assertNull(headers.get(WOODY_META_ID));
         assertNotNull(headers.get(OTEL_TRACE_PARENT));
 
-        otelSpan.end();
+        traceData.finishOtelSpan();
     }
 
     @Test
     void shouldIncludeRequestMetadata() {
         final var traceData = new TraceData();
-        final var otelSpan = tracer.spanBuilder("test-span").startSpan();
-        traceData.setOtelSpan(otelSpan);
+        attachOtelSpan(traceData);
         TraceContext.setCurrentTraceData(traceData);
 
         final var serviceSpan = traceData.getServiceSpan().getSpan();
@@ -119,13 +113,12 @@ class TraceContextHeadersExtractorTest {
         assertEquals("request-123", headers.get(WOODY_META_REQUEST_ID));
         assertEquals("2030-12-31T23:59:59Z", headers.get(WOODY_META_REQUEST_DEADLINE));
 
-        otelSpan.end();
+        traceData.finishOtelSpan();
     }
 
     @Test
     void shouldThrowWhenSpanContextIsInvalid() {
         final var traceData = new TraceData();
-        traceData.setOtelSpan(Span.getInvalid());
         TraceContext.setCurrentTraceData(traceData);
 
         try {
@@ -139,8 +132,7 @@ class TraceContextHeadersExtractorTest {
     @Test
     void shouldNotIncludeEmptyValues() {
         final var traceData = new TraceData();
-        final var otelSpan = tracer.spanBuilder("test-span").startSpan();
-        traceData.setOtelSpan(otelSpan);
+        attachOtelSpan(traceData);
         TraceContext.setCurrentTraceData(traceData);
 
         final var activeSpan = traceData.getActiveSpan();
@@ -155,14 +147,13 @@ class TraceContextHeadersExtractorTest {
         assertFalse(headers.containsKey(WOODY_META_ID));
         assertFalse(headers.containsKey(WOODY_META_USERNAME));
 
-        otelSpan.end();
+        traceData.finishOtelSpan();
     }
 
     @Test
     void shouldExtractAllUserIdentityMetadata() {
         final var traceData = new TraceData();
-        final var otelSpan = tracer.spanBuilder("test-span").startSpan();
-        traceData.setOtelSpan(otelSpan);
+        attachOtelSpan(traceData);
         TraceContext.setCurrentTraceData(traceData);
 
         final var activeSpan = traceData.getActiveSpan();
@@ -183,14 +174,13 @@ class TraceContextHeadersExtractorTest {
         assertEquals("noreply@valitydev.com", headers.get(WOODY_META_EMAIL));
         assertEquals("/internal", headers.get(WOODY_META_REALM));
 
-        otelSpan.end();
+        traceData.finishOtelSpan();
     }
 
     @Test
     void shouldGenerateValidTraceparent() {
         final var traceData = new TraceData();
-        final var otelSpan = tracer.spanBuilder("test-span").startSpan();
-        traceData.setOtelSpan(otelSpan);
+        attachOtelSpan(traceData);
         TraceContext.setCurrentTraceData(traceData);
 
         final var span = traceData.getActiveSpan().getSpan();
@@ -203,7 +193,7 @@ class TraceContextHeadersExtractorTest {
         assertNotNull(traceparent);
         assertTrue(traceparent.matches("00-[0-9a-f]{32}-[0-9a-f]{16}-0[0-1]"));
 
-        otelSpan.end();
+        traceData.finishOtelSpan();
     }
 
     @Test
@@ -211,8 +201,7 @@ class TraceContextHeadersExtractorTest {
         final var traceData = new TraceData();
         TraceContext.initNewServiceTrace(traceData, WFlow.createDefaultIdGenerator(), WFlow.createDefaultIdGenerator());
 
-        final var otelSpan = tracer.spanBuilder("test-span").startSpan();
-        traceData.setOtelSpan(otelSpan);
+        attachOtelSpan(traceData);
         TraceContext.setCurrentTraceData(traceData);
 
         final var activeSpan = traceData.getActiveSpan();
@@ -244,31 +233,36 @@ class TraceContextHeadersExtractorTest {
         assertEquals("2030-01-01T00:00:00Z", headers.get(WOODY_META_REQUEST_DEADLINE));
         assertNotNull(headers.get(OTEL_TRACE_PARENT));
 
-        otelSpan.end();
+        traceData.finishOtelSpan();
     }
 
     @Test
     void shouldReturnHeadersWhenTraceDataIsAbsent() throws InterruptedException {
         TraceContext.setCurrentTraceData(null);
 
-        var captured = new AtomicReference<Map<String, String>>();
-        var thread = new Thread(() -> {
-            captured.set(TraceContextHeadersExtractor.extractHeaders());
-        });
-        thread.start();
-        thread.join();
-
-        var headers = captured.get();
-        assertNotNull(headers);
-        assertNotNull(headers.get(OTEL_TRACE_PARENT));
+        assertThrows(IllegalStateException.class, TraceContextHeadersExtractor::extractHeaders);
     }
 
     @Test
     void shouldThrowWhenOtelSpanIsNull() {
         final var traceData = new TraceData();
-        traceData.setOtelSpan(null);
+        clearOtelSpan(traceData);
         TraceContext.setCurrentTraceData(traceData);
 
-        assertThrows(IllegalStateException.class, TraceContextHeadersExtractor::extractHeaders);
+        assertThrows(NullPointerException.class, TraceContextHeadersExtractor::extractHeaders);
+    }
+
+    private void attachOtelSpan(TraceData traceData) {
+        traceData.startNewOtelSpan("test-span", SpanKind.SERVER, null);
+    }
+
+    private void clearOtelSpan(TraceData traceData) {
+        try {
+            Field field = TraceData.class.getDeclaredField("otelSpan");
+            field.setAccessible(true);
+            field.set(traceData, null);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

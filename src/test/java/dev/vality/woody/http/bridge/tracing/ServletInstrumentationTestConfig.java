@@ -10,11 +10,13 @@ import io.opentelemetry.sdk.resources.Resource;
 import io.opentelemetry.sdk.testing.exporter.InMemorySpanExporter;
 import io.opentelemetry.sdk.trace.SdkTracerProvider;
 import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
+
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestClient;
 
 @TestConfiguration(proxyBeanMethods = false)
 class ServletInstrumentationTestConfig {
@@ -44,6 +46,11 @@ class ServletInstrumentationTestConfig {
                 .build();
         GlobalOpenTelemetry.set(sdk);
         return sdk;
+    }
+
+    @Bean
+    RestClient restClient(RestClient.Builder builder) {
+        return builder.build();
     }
 
     @RestController
