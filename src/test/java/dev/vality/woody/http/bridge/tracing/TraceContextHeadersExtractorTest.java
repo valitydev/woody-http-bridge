@@ -237,7 +237,7 @@ class TraceContextHeadersExtractorTest {
     }
 
     @Test
-    void shouldReturnHeadersWhenTraceDataIsAbsent() throws InterruptedException {
+    void shouldFailWhenTraceContextMissing() {
         TraceContext.setCurrentTraceData(null);
 
         assertThrows(IllegalStateException.class, TraceContextHeadersExtractor::extractHeaders);
