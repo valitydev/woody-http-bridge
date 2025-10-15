@@ -44,6 +44,30 @@ public class TraceContextRestorer {
                     var metaKey = s.substring(WOODY_META_PREFIX.length());
                     setIfPresent(headers, s, value -> customMetadata.putValue(metaKey, value));
                 });
+        setOtel(headers, traceData);
+        return traceData;
+    }
+
+    public TraceData restoreTraceData(TokenPayload payload) {
+        log.debug("Restoring trace data from payload: {}", payload);
+        var traceData = TraceContext.initNewServiceTrace(new TraceData(),
+                WFlow.createDefaultIdGenerator(), WFlow.createDefaultIdGenerator());
+        var span = traceData.getActiveSpan().getSpan();
+        span.setTraceId(payload.traceId());
+        span.setParentId(payload.spanId());
+        span.setId(payload.newSpanId());
+        span.setTimestamp(0);
+        span.setDuration(0);
+        var headers = new HashMap<String, String>();
+        headers.put(OTEL_TRACE_PARENT, payload.traceparent());
+        if (payload.tracestate() != null && !payload.tracestate().isEmpty()) {
+            headers.put(OTEL_TRACE_STATE, payload.tracestate());
+        }
+        setOtel(headers, traceData);
+        return traceData;
+    }
+
+    private void setOtel(Map<String, String> headers, TraceData traceData) {
         var extracted = GlobalOpenTelemetry.getPropagators()
                 .getTextMapPropagator()
                 .extract(Context.root(), headers, HEADER_GETTER);
@@ -52,31 +76,6 @@ public class TraceContextRestorer {
             traceData.setInboundTraceParent(headers.get(OTEL_TRACE_PARENT));
             traceData.setInboundTraceState(headers.getOrDefault(OTEL_TRACE_STATE, null));
         }
-        return traceData;
-    }
-
-    public TraceData restoreTraceData(TokenPayload payload) {
-        log.debug("Restoring trace data from headers: {}", payload);
-        var traceData = TraceContext.initNewServiceTrace(new TraceData(),
-                WFlow.createDefaultIdGenerator(), WFlow.createDefaultIdGenerator());
-        var span = traceData.getActiveSpan().getSpan();
-        span.setTraceId(payload.traceId());
-        span.setParentId(payload.spanId());
-        span.setId(payload.newSpanId());
-        var carrier = new java.util.HashMap<String, String>();
-        carrier.put(OTEL_TRACE_PARENT, payload.traceparent());
-        if (payload.tracestate() != null && !payload.tracestate().isEmpty()) {
-            carrier.put(OTEL_TRACE_STATE, payload.tracestate());
-        }
-        var extracted = GlobalOpenTelemetry.getPropagators()
-                .getTextMapPropagator()
-                .extract(Context.root(), carrier, HEADER_GETTER);
-        if (fromContext(extracted).getSpanContext().isValid()) {
-            traceData.setPendingParentContext(extracted);
-            traceData.setInboundTraceParent(payload.traceparent());
-            traceData.setInboundTraceState(payload.tracestate());
-        }
-        return traceData;
     }
 
     private void setIfPresent(Map<String, String> headers, String key, Consumer<String> consumer) {
