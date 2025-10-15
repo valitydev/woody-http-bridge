@@ -99,14 +99,14 @@ class TraceContextHeadersNormalizerTest {
         when(request.getHeader(ExternalHeaders.X_WOODY_META_ID)).thenReturn("user-id-123");
         when(request.getHeader(ExternalHeaders.X_WOODY_META_USERNAME)).thenReturn("john.doe");
         when(request.getHeader(ExternalHeaders.X_WOODY_META_EMAIL)).thenReturn("john@example.com");
-        when(request.getHeader(ExternalHeaders.X_WOODY_META_REALM)).thenReturn("/internal");
+        when(request.getHeader(ExternalHeaders.X_WOODY_META_REALM)).thenReturn("internal");
 
         var normalized = TraceContextHeadersNormalizer.normalize(request);
 
         assertEquals("user-id-123", normalized.get(WOODY_META_ID));
         assertEquals("john.doe", normalized.get(WOODY_META_USERNAME));
         assertEquals("john@example.com", normalized.get(WOODY_META_EMAIL));
-        assertEquals("/internal", normalized.get(WOODY_META_REALM));
+        assertEquals("internal", normalized.get(WOODY_META_REALM));
     }
 
     @Test
@@ -303,7 +303,7 @@ class TraceContextHeadersNormalizerTest {
                     "b54a93c4-415d-4f33-a5e9-3608fd043ff4",
                     "noreply@valitydev.com",
                     "noreply@valitydev.com",
-                    "/internal",
+                    "internal",
                     List.of("ROLE_USER")
             );
             extractor.when(() -> JwtTokenDetailsExtractor.extractFromContext(authentication))
@@ -318,7 +318,7 @@ class TraceContextHeadersNormalizerTest {
             assertEquals("b54a93c4-415d-4f33-a5e9-3608fd043ff4",
                     normalized.get(WOODY_META_ID));
             assertEquals("noreply@valitydev.com", normalized.get(WOODY_META_USERNAME));
-            assertEquals("/internal", normalized.get(WOODY_META_REALM));
+            assertEquals("internal", normalized.get(WOODY_META_REALM));
             assertEquals("00-cfa3d3072a4e3e99fc14829a65311819-6e4609576fa4d077-01", normalized.get(OTEL_TRACE_PARENT));
             assertEquals("2030-01-01T00:00:00Z", normalized.get(WOODY_DEADLINE));
             assertEquals("req-complex", normalized.get(WOODY_META_REQUEST_ID));

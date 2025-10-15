@@ -54,7 +54,7 @@ class TraceContextPipelineTest {
         normalized.put(WOODY_META_ID, "user-id");
         normalized.put(WOODY_META_USERNAME, "user-name");
         normalized.put(WOODY_META_EMAIL, "user@example.com");
-        normalized.put(WOODY_META_REALM, "/internal");
+        normalized.put(WOODY_META_REALM, "internal");
         normalized.put(WOODY_META_REQUEST_ID, "request-id");
         normalized.put(WOODY_META_REQUEST_DEADLINE, "2030-01-01T00:00:00Z");
 
@@ -80,7 +80,7 @@ class TraceContextPipelineTest {
         assertEquals("user-id", extracted.get(WOODY_META_ID));
         assertEquals("user-name", extracted.get(WOODY_META_USERNAME));
         assertEquals("user@example.com", extracted.get(WOODY_META_EMAIL));
-        assertEquals("/internal", extracted.get(WOODY_META_REALM));
+        assertEquals("internal", extracted.get(WOODY_META_REALM));
         assertEquals("request-id", extracted.get(WOODY_META_REQUEST_ID));
         assertEquals("2030-01-01T00:00:00Z", extracted.get(WOODY_META_REQUEST_DEADLINE));
         assertTrue(extracted.get(OTEL_TRACE_PARENT).contains(otelTraceId));

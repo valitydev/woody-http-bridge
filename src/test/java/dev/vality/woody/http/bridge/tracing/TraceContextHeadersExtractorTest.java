@@ -166,14 +166,14 @@ class TraceContextHeadersExtractorTest {
         activeSpan.getCustomMetadata().putValue(WoodyMetaHeaders.ID, "b54a93c4-415d-4f33-a5e9-3608fd043ff4");
         activeSpan.getCustomMetadata().putValue(WoodyMetaHeaders.USERNAME, "noreply@valitydev.com");
         activeSpan.getCustomMetadata().putValue(WoodyMetaHeaders.EMAIL, "noreply@valitydev.com");
-        activeSpan.getCustomMetadata().putValue(WoodyMetaHeaders.REALM, "/internal");
+        activeSpan.getCustomMetadata().putValue(WoodyMetaHeaders.REALM, "internal");
 
         final Map<String, String> headers = TraceContextExtractor.extractHeaders();
 
         assertEquals("b54a93c4-415d-4f33-a5e9-3608fd043ff4", headers.get(WOODY_META_ID));
         assertEquals("noreply@valitydev.com", headers.get(WOODY_META_USERNAME));
         assertEquals("noreply@valitydev.com", headers.get(WOODY_META_EMAIL));
-        assertEquals("/internal", headers.get(WOODY_META_REALM));
+        assertEquals("internal", headers.get(WOODY_META_REALM));
 
         traceData.finishOtelSpan();
     }
@@ -250,7 +250,7 @@ class TraceContextHeadersExtractorTest {
         metadata.putValue(WoodyMetaHeaders.ID, "b54a93c4-415d-4f33-a5e9-3608fd043ff4");
         metadata.putValue(WoodyMetaHeaders.USERNAME, "noreply@valitydev.com");
         metadata.putValue(WoodyMetaHeaders.EMAIL, "noreply@valitydev.com");
-        metadata.putValue(WoodyMetaHeaders.REALM, "/internal");
+        metadata.putValue(WoodyMetaHeaders.REALM, "internal");
         metadata.putValue(WoodyMetaHeaders.X_REQUEST_ID, "req-12345");
         metadata.putValue(WoodyMetaHeaders.X_REQUEST_DEADLINE, "2030-01-01T00:00:00Z");
 
@@ -263,7 +263,7 @@ class TraceContextHeadersExtractorTest {
         assertEquals("b54a93c4-415d-4f33-a5e9-3608fd043ff4", headers.get(WOODY_META_ID));
         assertEquals("noreply@valitydev.com", headers.get(WOODY_META_USERNAME));
         assertEquals("noreply@valitydev.com", headers.get(WOODY_META_EMAIL));
-        assertEquals("/internal", headers.get(WOODY_META_REALM));
+        assertEquals("internal", headers.get(WOODY_META_REALM));
         assertEquals("req-12345", headers.get(WOODY_META_REQUEST_ID));
         assertEquals("2030-01-01T00:00:00Z", headers.get(WOODY_META_REQUEST_DEADLINE));
         assertNotNull(headers.get(OTEL_TRACE_PARENT));

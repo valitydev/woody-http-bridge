@@ -74,7 +74,7 @@ class TraceContextRestorerTest {
         headers.put(WOODY_META_ID, "b54a93c4-415d-4f33-a5e9-3608fd043ff4");
         headers.put(WOODY_META_USERNAME, "noreply@valitydev.com");
         headers.put(WOODY_META_EMAIL, "noreply@valitydev.com");
-        headers.put(WOODY_META_REALM, "/internal");
+        headers.put(WOODY_META_REALM, "internal");
 
         TraceData traceData = TraceContextRestorer.restoreTraceData(headers);
 
@@ -82,7 +82,7 @@ class TraceContextRestorerTest {
         assertEquals("b54a93c4-415d-4f33-a5e9-3608fd043ff4", metadata.getValue(WoodyMetaHeaders.ID));
         assertEquals("noreply@valitydev.com", metadata.getValue(WoodyMetaHeaders.USERNAME));
         assertEquals("noreply@valitydev.com", metadata.getValue(WoodyMetaHeaders.EMAIL));
-        assertEquals("/internal", metadata.getValue(WoodyMetaHeaders.REALM));
+        assertEquals("internal", metadata.getValue(WoodyMetaHeaders.REALM));
         assertNotNull(traceData.getServiceSpan().getSpan().getTraceId());
         assertNotNull(traceData.getServiceSpan().getSpan().getId());
         assertOtelSpanInitializedAfterContext(traceData);
@@ -177,7 +177,7 @@ class TraceContextRestorerTest {
         headers.put(WOODY_META_ID, "user-uuid");
         headers.put(WOODY_META_USERNAME, "john.doe");
         headers.put(WOODY_META_EMAIL, "john@example.com");
-        headers.put(WOODY_META_REALM, "/external");
+        headers.put(WOODY_META_REALM, "external");
         headers.put(WOODY_META_REQUEST_ID, "complex-request-id");
         headers.put(WOODY_META_REQUEST_DEADLINE, "2030-06-15T13:00:00Z");
 
@@ -193,7 +193,7 @@ class TraceContextRestorerTest {
         assertEquals("user-uuid", metadata.getValue(WoodyMetaHeaders.ID));
         assertEquals("john.doe", metadata.getValue(WoodyMetaHeaders.USERNAME));
         assertEquals("john@example.com", metadata.getValue(WoodyMetaHeaders.EMAIL));
-        assertEquals("/external", metadata.getValue(WoodyMetaHeaders.REALM));
+        assertEquals("external", metadata.getValue(WoodyMetaHeaders.REALM));
         assertEquals("complex-request-id", metadata.getValue(WoodyMetaHeaders.X_REQUEST_ID));
         assertEquals("2030-06-15T13:00:00Z", metadata.getValue(WoodyMetaHeaders.X_REQUEST_DEADLINE));
 

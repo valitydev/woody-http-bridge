@@ -36,14 +36,22 @@ public final class JwtTokenDetailsExtractor {
 
     private static String extractRealm(Jwt token) {
         var issuer = token.getClaimAsString(ISSUER);
-        if (issuer == null || issuer.isBlank()) {
+        if (issuer == null) {
             return null;
         }
-        var lastSlash = issuer.lastIndexOf('/');
-        if (lastSlash < 0) {
-            return issuer;
+        var normalized = issuer.trim();
+        if (normalized.isEmpty()) {
+            return null;
         }
-        return issuer.substring(lastSlash);
+        while (normalized.endsWith("/")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        if (normalized.isEmpty()) {
+            return null;
+        }
+        var lastSlash = normalized.lastIndexOf('/');
+        var realm = lastSlash >= 0 ? normalized.substring(lastSlash + 1) : normalized;
+        return realm.isBlank() ? null : realm;
     }
 
     public record JwtTokenDetails(String subject,
