@@ -9,6 +9,11 @@ import dev.vality.woody.http.bridge.properties.TracingProperties;
 import dev.vality.woody.http.bridge.properties.TracingProperties.Endpoint;
 import dev.vality.woody.http.bridge.properties.TracingProperties.RequestHeaderMode;
 import dev.vality.woody.http.bridge.properties.TracingProperties.ResponseHeaderMode;
+import dev.vality.woody.http.bridge.service.SecretService;
+import dev.vality.woody.http.bridge.token.CipherTokenExtractor;
+import dev.vality.woody.http.bridge.token.TokenCipher;
+import dev.vality.woody.http.bridge.token.TokenPayload;
+import dev.vality.woody.http.bridge.token.VaultTokenKeyExtractor;
 import dev.vality.woody.http.bridge.tracing.WoodyTraceResponseHandler;
 import dev.vality.woody.http.bridge.tracing.WoodyTracingFilter;
 import io.opentelemetry.api.GlobalOpenTelemetry;
@@ -27,12 +32,17 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import static dev.vality.woody.http.bridge.tracing.TraceHeadersConstants.ExternalHeaders.*;
 import static dev.vality.woody.http.bridge.tracing.TraceHeadersConstants.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 class WoodyTracingFilterTest {
 
     private SdkTracerProvider tracerProvider;
     private WoodyTracingFilter filter;
     private TracingProperties tracingProperties;
+    private TokenCipher tokenCipher;
+    private SecretService secretService;
+    private CipherTokenExtractor cipherTokenExtractor;
+    private VaultTokenKeyExtractor vaultTokenKeyExtractor;
 
     @BeforeEach
     void setUp() {
@@ -54,6 +64,285 @@ class WoodyTracingFilterTest {
         if (tracerProvider != null) {
             tracerProvider.close();
         }
+    }
+
+    @Test
+    void shouldHandleCipherTokenSuccessfully() throws Exception {
+        tokenCipher = mock(TokenCipher.class);
+        secretService = mock(SecretService.class);
+        cipherTokenExtractor = mock(CipherTokenExtractor.class);
+        vaultTokenKeyExtractor = mock(VaultTokenKeyExtractor.class);
+        configureFilter(RequestHeaderMode.CIPHER_TOKEN, ResponseHeaderMode.OFF, null);
+        var endpoint = tracingProperties.getEndpoints().stream()
+                .filter(this::matchesDefault)
+                .findFirst()
+                .orElseThrow();
+        endpoint.setTokenTtl("15");
+        rebuildFilter();
+
+        var request = new MockHttpServletRequest("GET", "/wachter/tokenValue");
+        request.setLocalPort(8080);
+        final var response = new MockHttpServletResponse();
+
+        var payload = new TokenPayload(
+                "https://example.com",
+                java.time.LocalDateTime.now(java.time.ZoneOffset.UTC),
+                "invoice-1",
+                "11111111111111111111111111111111",
+                "2222222222222222",
+                "3333333333333333",
+                "00-11111111111111111111111111111111-2222222222222222-01",
+                "congo=4"
+        );
+
+        when(cipherTokenExtractor.extractToken(request)).thenReturn("tokenValue");
+        when(secretService.getCipherTokenSecretKey()).thenReturn("secret");
+        when(tokenCipher.decrypt("tokenValue", "secret")).thenReturn(payload);
+
+        var chainInvoked = new java.util.concurrent.atomic.AtomicBoolean(false);
+        filter.doFilter(request, response, (req, res) -> chainInvoked.set(true));
+
+        assertTrue(chainInvoked.get());
+        assertEquals(payload, request.getAttribute(WoodyTracingFilter.CIPHER_TOKEN_ATTRIBUTE));
+        assertEquals(200, response.getStatus());
+    }
+
+    @Test
+    void shouldRejectCipherTokenWhenExpired() throws Exception {
+        tokenCipher = mock(TokenCipher.class);
+        secretService = mock(SecretService.class);
+        cipherTokenExtractor = mock(CipherTokenExtractor.class);
+        vaultTokenKeyExtractor = mock(VaultTokenKeyExtractor.class);
+        configureFilter(RequestHeaderMode.CIPHER_TOKEN, ResponseHeaderMode.OFF, null);
+        var endpoint = tracingProperties.getEndpoints().stream()
+                .filter(this::matchesDefault)
+                .findFirst()
+                .orElseThrow();
+        endpoint.setTokenTtl("1");
+        rebuildFilter();
+
+        var request = new MockHttpServletRequest("GET", "/wachter/tokenValue");
+        request.setLocalPort(8080);
+        final var response = new MockHttpServletResponse();
+
+        var payload = new TokenPayload(
+                "https://example.com",
+                java.time.LocalDateTime.now(java.time.ZoneOffset.UTC).minusMinutes(10),
+                "invoice-1",
+                "11111111111111111111111111111111",
+                "2222222222222222",
+                "3333333333333333",
+                "00-11111111111111111111111111111111-2222222222222222-01",
+                null
+        );
+
+        when(cipherTokenExtractor.extractToken(request)).thenReturn("tokenValue");
+        when(secretService.getCipherTokenSecretKey()).thenReturn("secret");
+        when(tokenCipher.decrypt("tokenValue", "secret")).thenReturn(payload);
+
+        var chain = mock(FilterChain.class);
+        filter.doFilter(request, response, chain);
+
+        assertEquals(403, response.getStatus());
+        assertNull(request.getAttribute(WoodyTracingFilter.CIPHER_TOKEN_ATTRIBUTE));
+        verify(chain, never()).doFilter(any(), any());
+    }
+
+    @Test
+    void shouldRejectCipherTokenWhenDecryptFails() throws Exception {
+        tokenCipher = mock(TokenCipher.class);
+        secretService = mock(SecretService.class);
+        cipherTokenExtractor = mock(CipherTokenExtractor.class);
+        vaultTokenKeyExtractor = mock(VaultTokenKeyExtractor.class);
+        configureFilter(RequestHeaderMode.CIPHER_TOKEN, ResponseHeaderMode.OFF, null);
+        rebuildFilter();
+
+        var request = new MockHttpServletRequest("GET", "/wachter/tokenValue");
+        request.setLocalPort(8080);
+        final var response = new MockHttpServletResponse();
+
+        when(cipherTokenExtractor.extractToken(request)).thenReturn("tokenValue");
+        when(secretService.getCipherTokenSecretKey()).thenReturn("secret");
+        when(tokenCipher.decrypt("tokenValue", "secret")).thenThrow(new IllegalArgumentException("boom"));
+
+        var chain = mock(FilterChain.class);
+        filter.doFilter(request, response, chain);
+
+        assertEquals(403, response.getStatus());
+        assertNull(request.getAttribute(WoodyTracingFilter.CIPHER_TOKEN_ATTRIBUTE));
+        verify(chain, never()).doFilter(any(), any());
+    }
+
+    @Test
+    void shouldRejectCipherTokenWhenBlank() throws Exception {
+        tokenCipher = mock(TokenCipher.class);
+        secretService = mock(SecretService.class);
+        cipherTokenExtractor = mock(CipherTokenExtractor.class);
+        vaultTokenKeyExtractor = mock(VaultTokenKeyExtractor.class);
+        configureFilter(RequestHeaderMode.CIPHER_TOKEN, ResponseHeaderMode.OFF, null);
+        rebuildFilter();
+
+        var request = new MockHttpServletRequest("GET", "/wachter/");
+        request.setLocalPort(8080);
+        final var response = new MockHttpServletResponse();
+
+        when(cipherTokenExtractor.extractToken(request)).thenReturn(" ");
+
+        var chain = mock(FilterChain.class);
+        filter.doFilter(request, response, chain);
+
+        assertEquals(403, response.getStatus());
+        assertNull(request.getAttribute(WoodyTracingFilter.CIPHER_TOKEN_ATTRIBUTE));
+        verifyNoInteractions(tokenCipher, secretService);
+        verify(chain, never()).doFilter(any(), any());
+    }
+
+    @Test
+    void shouldHandleVaultTokenSuccessfully() throws Exception {
+        tokenCipher = mock(TokenCipher.class);
+        secretService = mock(SecretService.class);
+        cipherTokenExtractor = mock(CipherTokenExtractor.class);
+        vaultTokenKeyExtractor = mock(VaultTokenKeyExtractor.class);
+        configureFilter(RequestHeaderMode.VAULT_TOKEN, ResponseHeaderMode.OFF, null);
+        var endpoint = tracingProperties.getEndpoints().stream()
+                .filter(this::matchesDefault)
+                .findFirst()
+                .orElseThrow();
+        endpoint.setTokenTtl("15");
+        rebuildFilter();
+
+        var request = new MockHttpServletRequest("GET", "/wachter/vaultKey");
+        request.setLocalPort(8080);
+        final var response = new MockHttpServletResponse();
+
+        var payload = new TokenPayload(
+                "https://example.com",
+                java.time.LocalDateTime.now(java.time.ZoneOffset.UTC),
+                "invoice-1",
+                "11111111111111111111111111111111",
+                "2222222222222222",
+                "3333333333333333",
+                "00-11111111111111111111111111111111-2222222222222222-01",
+                null
+        );
+
+        when(vaultTokenKeyExtractor.extractTokenKey(request)).thenReturn("vaultKey");
+        when(secretService.getVaultToken("vaultKey")).thenReturn(payload);
+
+        var chainInvoked = new java.util.concurrent.atomic.AtomicBoolean(false);
+        filter.doFilter(request, response, (req, res) -> chainInvoked.set(true));
+
+        assertTrue(chainInvoked.get());
+        assertEquals(payload, request.getAttribute(WoodyTracingFilter.VAULT_TOKEN_ATTRIBUTE));
+        assertEquals(200, response.getStatus());
+    }
+
+    @Test
+    void shouldRejectVaultTokenWhenExpired() throws Exception {
+        tokenCipher = mock(TokenCipher.class);
+        secretService = mock(SecretService.class);
+        cipherTokenExtractor = mock(CipherTokenExtractor.class);
+        vaultTokenKeyExtractor = mock(VaultTokenKeyExtractor.class);
+        configureFilter(RequestHeaderMode.VAULT_TOKEN, ResponseHeaderMode.OFF, null);
+        var endpoint = tracingProperties.getEndpoints().stream()
+                .filter(this::matchesDefault)
+                .findFirst()
+                .orElseThrow();
+        endpoint.setTokenTtl("1");
+        rebuildFilter();
+
+        var request = new MockHttpServletRequest("GET", "/wachter/vaultKey");
+        request.setLocalPort(8080);
+        final var response = new MockHttpServletResponse();
+
+        var payload = new TokenPayload(
+                "https://example.com",
+                java.time.LocalDateTime.now(java.time.ZoneOffset.UTC).minusMinutes(5),
+                "invoice-1",
+                "11111111111111111111111111111111",
+                "2222222222222222",
+                "3333333333333333",
+                "00-11111111111111111111111111111111-2222222222222222-01",
+                null
+        );
+
+        when(vaultTokenKeyExtractor.extractTokenKey(request)).thenReturn("vaultKey");
+        when(secretService.getVaultToken("vaultKey")).thenReturn(payload);
+
+        var chain = mock(FilterChain.class);
+        filter.doFilter(request, response, chain);
+
+        assertEquals(403, response.getStatus());
+        assertNull(request.getAttribute(WoodyTracingFilter.VAULT_TOKEN_ATTRIBUTE));
+        verify(chain, never()).doFilter(any(), any());
+    }
+
+    @Test
+    void shouldRejectVaultTokenWhenUnavailable() throws Exception {
+        tokenCipher = mock(TokenCipher.class);
+        secretService = mock(SecretService.class);
+        cipherTokenExtractor = mock(CipherTokenExtractor.class);
+        vaultTokenKeyExtractor = mock(VaultTokenKeyExtractor.class);
+        configureFilter(RequestHeaderMode.VAULT_TOKEN, ResponseHeaderMode.OFF, null);
+        rebuildFilter();
+
+        var request = new MockHttpServletRequest("GET", "/wachter/vaultKey");
+        request.setLocalPort(8080);
+        final var response = new MockHttpServletResponse();
+
+        when(vaultTokenKeyExtractor.extractTokenKey(request)).thenReturn("vaultKey");
+        when(secretService.getVaultToken("vaultKey")).thenThrow(new IllegalStateException("vault down"));
+
+        var chain = mock(FilterChain.class);
+        filter.doFilter(request, response, chain);
+
+        assertEquals(403, response.getStatus());
+        assertNull(request.getAttribute(WoodyTracingFilter.VAULT_TOKEN_ATTRIBUTE));
+        verify(chain, never()).doFilter(any(), any());
+    }
+
+    @Test
+    void shouldRejectVaultTokenWhenKeyBlank() throws Exception {
+        tokenCipher = mock(TokenCipher.class);
+        secretService = mock(SecretService.class);
+        cipherTokenExtractor = mock(CipherTokenExtractor.class);
+        vaultTokenKeyExtractor = mock(VaultTokenKeyExtractor.class);
+        configureFilter(RequestHeaderMode.VAULT_TOKEN, ResponseHeaderMode.OFF, null);
+        rebuildFilter();
+
+        var request = new MockHttpServletRequest("GET", "/wachter/");
+        request.setLocalPort(8080);
+        final var response = new MockHttpServletResponse();
+
+        when(vaultTokenKeyExtractor.extractTokenKey(request)).thenReturn(" ");
+
+        var chain = mock(FilterChain.class);
+        filter.doFilter(request, response, chain);
+
+        assertEquals(403, response.getStatus());
+        assertNull(request.getAttribute(WoodyTracingFilter.VAULT_TOKEN_ATTRIBUTE));
+        verify(chain, never()).doFilter(any(), any());
+    }
+
+    @Test
+    void shouldRejectVaultTokenWhenSecretServiceMissing() throws Exception {
+        tokenCipher = mock(TokenCipher.class);
+        secretService = null;
+        cipherTokenExtractor = mock(CipherTokenExtractor.class);
+        vaultTokenKeyExtractor = mock(VaultTokenKeyExtractor.class);
+        configureFilter(RequestHeaderMode.VAULT_TOKEN, ResponseHeaderMode.OFF, null);
+        rebuildFilter();
+
+        var request = new MockHttpServletRequest("GET", "/wachter/vaultKey");
+        request.setLocalPort(8080);
+        final var response = new MockHttpServletResponse();
+
+        var chain = mock(FilterChain.class);
+        filter.doFilter(request, response, chain);
+
+        assertEquals(403, response.getStatus());
+        assertNull(request.getAttribute(WoodyTracingFilter.VAULT_TOKEN_ATTRIBUTE));
+        verify(chain, never()).doFilter(any(), any());
     }
 
     @Test
@@ -363,6 +652,7 @@ class WoodyTracingFilterTest {
 
     private void rebuildFilter() {
         var lifecycleHandler = new WoodyTraceResponseHandler();
-        filter = new WoodyTracingFilter(tracingProperties, lifecycleHandler, null, null, null, null);
+        filter = new WoodyTracingFilter(tracingProperties, lifecycleHandler, tokenCipher, secretService,
+                cipherTokenExtractor, vaultTokenKeyExtractor);
     }
 }
