@@ -4,6 +4,7 @@ import dev.vality.adapter.common.secret.SecretObj;
 import dev.vality.adapter.common.secret.SecretRef;
 import dev.vality.adapter.common.secret.SecretValue;
 import dev.vality.adapter.common.secret.VaultSecretService;
+import dev.vality.woody.http.bridge.properties.TracingProperties;
 import dev.vality.woody.http.bridge.token.TokenPayload;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,6 +13,7 @@ import org.mockito.ArgumentCaptor;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -27,7 +29,14 @@ class SecretServiceTest {
     @BeforeEach
     void setUp() {
         vaultSecretService = mock(VaultSecretService.class);
-        secretService = new SecretService(vaultSecretService, "test-service");
+        var endpoint = new TracingProperties.Endpoint();
+        endpoint.setPort(8080);
+        endpoint.setPath("/api");
+        endpoint.setRequestHeaderMode(TracingProperties.RequestHeaderMode.CIPHER_TOKEN);
+        endpoint.setResponseHeaderMode(TracingProperties.ResponseHeaderMode.WOODY);
+        var properties = new TracingProperties();
+        properties.setEndpoints(List.of(endpoint));
+        secretService = new SecretService(vaultSecretService, "test-service", properties);
     }
 
     @Test
