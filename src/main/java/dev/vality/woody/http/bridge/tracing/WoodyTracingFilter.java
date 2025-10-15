@@ -101,11 +101,11 @@ public final class WoodyTracingFilter extends OncePerRequestFilter {
                                    HttpServletResponse response,
                                    FilterChain filterChain,
                                    TracePolicy policy) {
+        var requestPath = getRequestPath(request);
         if (secretService == null) {
             throw new WoodyHttpBridgeException(
-                    "Vault support (SecretService|VaultSecretService|VaultTemplate) is not configured");
+                    "Vault support (SecretService|VaultSecretService|VaultTemplate) is not configured " + requestPath);
         }
-        var requestPath = getRequestPath(request);
         var resolvedToken = cipherTokenExtractor.extractToken(request);
         if (resolvedToken == null || resolvedToken.isBlank()) {
             respondForbidden(response, requestPath, "Empty cipher token");
@@ -130,11 +130,11 @@ public final class WoodyTracingFilter extends OncePerRequestFilter {
                                   HttpServletResponse response,
                                   FilterChain filterChain,
                                   TracePolicy policy) {
+        var requestPath = getRequestPath(request);
         if (secretService == null) {
             throw new WoodyHttpBridgeException(
-                    "Vault support (SecretService|VaultSecretService|VaultTemplate) is not configured");
+                    "Vault support (SecretService|VaultSecretService|VaultTemplate) is not configured " + requestPath);
         }
-        var requestPath = getRequestPath(request);
         var tokenKey = vaultTokenKeyExtractor.extractTokenKey(request);
         if (tokenKey == null || tokenKey.isBlank()) {
             respondForbidden(response, requestPath, "Empty vault token key");
@@ -145,7 +145,7 @@ public final class WoodyTracingFilter extends OncePerRequestFilter {
             token = secretService.getVaultToken(tokenKey);
         } catch (Throwable ex) {
             throw new WoodyHttpBridgeException(
-                    "Vault (SecretService|VaultSecretService|VaultTemplate) unavailable", ex);
+                    "Vault (SecretService|VaultSecretService|VaultTemplate) unavailable " + requestPath, ex);
         }
         if (token == null || isExpired(token.timestamp(), policy.tokenTtl())) {
             respondForbidden(response, requestPath, "Invalid cipher token payload");
@@ -206,11 +206,11 @@ public final class WoodyTracingFilter extends OncePerRequestFilter {
 
     private TokenPayload decryptAndValidate(String token, String requestPath, TracePolicy policy) {
         if (tokenCipher == null) {
-            throw new WoodyHttpBridgeException("TokenCipher is not configured");
+            throw new WoodyHttpBridgeException("TokenCipher is not configured " + requestPath);
         }
         var secretKey = resolveCipherSecretKey(policy);
         if (secretKey == null || secretKey.isBlank()) {
-            throw new WoodyHttpBridgeException("Cipher token secret key is not configured");
+            throw new WoodyHttpBridgeException("Cipher token secret key is not configured " + requestPath);
         }
         final TokenPayload payload;
         try {
