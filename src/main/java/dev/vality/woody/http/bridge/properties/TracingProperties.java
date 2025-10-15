@@ -1,5 +1,8 @@
 package dev.vality.woody.http.bridge.properties;
 
+import dev.vality.woody.http.bridge.token.TokenPayload;
+import dev.vality.woody.http.bridge.tracing.WoodyTracingFilter;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
@@ -10,6 +13,8 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+
+import static dev.vality.woody.http.bridge.tracing.WoodyTracingFilter.getRequestPath;
 
 @Getter
 @Setter
@@ -50,6 +55,19 @@ public class TracingProperties {
         WOODY,
         X_WOODY,
         HTTP
+    }
+
+    public TokenPayload extractTokenPayload(HttpServletRequest request) {
+        return (TokenPayload) endpoints.stream()
+                .filter(endpoint -> matches(endpoint, request.getLocalPort(), getRequestPath(request)))
+                .findFirst()
+                .map(endpoint -> switch (endpoint.requestHeaderMode) {
+                    case CIPHER_TOKEN -> WoodyTracingFilter.CIPHER_TOKEN_ATTRIBUTE;
+                    case VAULT_TOKEN -> WoodyTracingFilter.VAULT_TOKEN_ATTRIBUTE;
+                    default -> null;
+                })
+                .map(request::getAttribute)
+                .orElse(null);
     }
 
     public TracePolicy resolvePolicy(int port, String path) {
