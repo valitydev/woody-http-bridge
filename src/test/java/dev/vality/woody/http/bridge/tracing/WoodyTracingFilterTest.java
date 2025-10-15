@@ -5,6 +5,7 @@ import dev.vality.woody.api.flow.error.WErrorSource;
 import dev.vality.woody.api.flow.error.WErrorType;
 import dev.vality.woody.api.flow.error.WRuntimeException;
 import dev.vality.woody.api.trace.context.TraceContext;
+import dev.vality.woody.http.bridge.exceptions.WoodyHttpBridgeException;
 import dev.vality.woody.http.bridge.properties.TracingProperties;
 import dev.vality.woody.http.bridge.properties.TracingProperties.Endpoint;
 import dev.vality.woody.http.bridge.properties.TracingProperties.RequestHeaderMode;
@@ -200,7 +201,7 @@ class WoodyTracingFilterTest {
     @Test
     void shouldUseInlineCipherSecretWhenConfigured() throws Exception {
         tokenCipher = mock(TokenCipher.class);
-        secretService = null;
+        secretService = mock(SecretService.class);
         cipherTokenExtractor = mock(CipherTokenExtractor.class);
         vaultTokenKeyExtractor = mock(VaultTokenKeyExtractor.class);
         configureFilter(RequestHeaderMode.CIPHER_TOKEN, ResponseHeaderMode.OFF, null);
@@ -235,6 +236,7 @@ class WoodyTracingFilterTest {
         assertTrue(chainInvoked.get());
         assertEquals(payload, request.getAttribute(WoodyTracingFilter.CIPHER_TOKEN_ATTRIBUTE));
         assertEquals(200, response.getStatus());
+        verifyNoInteractions(secretService);
     }
 
     @Test
@@ -333,12 +335,8 @@ class WoodyTracingFilterTest {
         when(vaultTokenKeyExtractor.extractTokenKey(request)).thenReturn("vaultKey");
         when(secretService.getVaultToken("vaultKey")).thenThrow(new IllegalStateException("vault down"));
 
-        var chain = mock(FilterChain.class);
-        filter.doFilter(request, response, chain);
-
-        assertEquals(403, response.getStatus());
-        assertNull(request.getAttribute(WoodyTracingFilter.VAULT_TOKEN_ATTRIBUTE));
-        verify(chain, never()).doFilter(any(), any());
+        assertThrows(WoodyHttpBridgeException.class,
+                () -> filter.doFilter(request, response, mock(FilterChain.class)));
     }
 
     @Test
@@ -377,12 +375,8 @@ class WoodyTracingFilterTest {
         request.setLocalPort(8080);
         final var response = new MockHttpServletResponse();
 
-        var chain = mock(FilterChain.class);
-        filter.doFilter(request, response, chain);
-
-        assertEquals(403, response.getStatus());
-        assertNull(request.getAttribute(WoodyTracingFilter.VAULT_TOKEN_ATTRIBUTE));
-        verify(chain, never()).doFilter(any(), any());
+        assertThrows(WoodyHttpBridgeException.class,
+                () -> filter.doFilter(request, response, mock(FilterChain.class)));
     }
 
     @Test
