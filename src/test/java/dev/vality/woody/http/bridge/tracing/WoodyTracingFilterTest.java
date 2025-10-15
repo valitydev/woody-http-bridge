@@ -97,7 +97,7 @@ class WoodyTracingFilterTest {
         );
 
         when(cipherTokenExtractor.extractToken(request)).thenReturn("tokenValue");
-        when(secretService.getCipherTokenSecretKey()).thenReturn("secret");
+        when(secretService.getCipherTokenSecretKey(any())).thenReturn("secret");
         when(tokenCipher.decrypt("tokenValue", "secret")).thenReturn(payload);
 
         var chainInvoked = new java.util.concurrent.atomic.AtomicBoolean(false);
@@ -138,7 +138,7 @@ class WoodyTracingFilterTest {
         );
 
         when(cipherTokenExtractor.extractToken(request)).thenReturn("tokenValue");
-        when(secretService.getCipherTokenSecretKey()).thenReturn("secret");
+        when(secretService.getCipherTokenSecretKey(any())).thenReturn("secret");
         when(tokenCipher.decrypt("tokenValue", "secret")).thenReturn(payload);
 
         var chain = mock(FilterChain.class);
@@ -163,7 +163,7 @@ class WoodyTracingFilterTest {
         final var response = new MockHttpServletResponse();
 
         when(cipherTokenExtractor.extractToken(request)).thenReturn("tokenValue");
-        when(secretService.getCipherTokenSecretKey()).thenReturn("secret");
+        when(secretService.getCipherTokenSecretKey(any())).thenReturn("secret");
         when(tokenCipher.decrypt("tokenValue", "secret")).thenThrow(new IllegalArgumentException("boom"));
 
         var chain = mock(FilterChain.class);
@@ -228,6 +228,10 @@ class WoodyTracingFilterTest {
         );
 
         when(cipherTokenExtractor.extractToken(request)).thenReturn("tokenValue");
+        when(secretService.getCipherTokenSecretKey(any())).thenAnswer(invocation -> {
+            var policy = invocation.getArgument(0, TracingProperties.TracePolicy.class);
+            return policy.defaultCipherToken();
+        });
         when(tokenCipher.decrypt("tokenValue", "inline-secret")).thenReturn(payload);
 
         var chainInvoked = new java.util.concurrent.atomic.AtomicBoolean(false);
@@ -236,7 +240,7 @@ class WoodyTracingFilterTest {
         assertTrue(chainInvoked.get());
         assertEquals(payload, request.getAttribute(WoodyTracingFilter.CIPHER_TOKEN_ATTRIBUTE));
         assertEquals(200, response.getStatus());
-        verifyNoInteractions(secretService);
+        verify(secretService).getCipherTokenSecretKey(any());
     }
 
     @Test
