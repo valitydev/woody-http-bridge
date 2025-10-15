@@ -2,8 +2,6 @@ package dev.vality.woody.http.bridge.tracing;
 
 import dev.vality.woody.api.flow.WFlow;
 import dev.vality.woody.api.trace.context.TraceContext;
-import dev.vality.woody.http.bridge.tracing.TraceContextHeadersExtractor;
-import dev.vality.woody.http.bridge.tracing.TraceContextRestorer;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
 import io.opentelemetry.context.propagation.ContextPropagators;
@@ -70,7 +68,7 @@ class TraceContextPipelineTest {
             assertNotNull(current);
             assertTrue(current.getServiceSpan().getSpan().isFilled());
             assertFalse(current.isClient());
-            extractedRef.set(TraceContextHeadersExtractor.extractHeaders());
+            extractedRef.set(TraceContextExtractor.extractHeaders());
         }, traceData).run();
 
         var extracted = extractedRef.get();

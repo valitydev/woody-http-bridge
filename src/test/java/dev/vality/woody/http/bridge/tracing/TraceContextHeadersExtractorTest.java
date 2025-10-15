@@ -3,7 +3,7 @@ package dev.vality.woody.http.bridge.tracing;
 import dev.vality.woody.api.flow.WFlow;
 import dev.vality.woody.api.trace.TraceData;
 import dev.vality.woody.api.trace.context.TraceContext;
-import dev.vality.woody.http.bridge.tracing.TraceContextHeadersExtractor;
+import dev.vality.woody.http.bridge.token.TokenPayload;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Map;
 
 import static dev.vality.woody.http.bridge.tracing.TraceHeadersConstants.*;
@@ -62,7 +63,7 @@ class TraceContextHeadersExtractorTest {
         activeSpan.getCustomMetadata().putValue(WoodyMetaHeaders.EMAIL, "user@example.com");
         activeSpan.getCustomMetadata().putValue(WoodyMetaHeaders.REALM, "/realm");
 
-        final Map<String, String> headers = TraceContextHeadersExtractor.extractHeaders();
+        final Map<String, String> headers = TraceContextExtractor.extractHeaders();
 
         assertNotNull(headers);
         assertTrue(headers.containsKey(WOODY_TRACE_ID));
@@ -83,7 +84,7 @@ class TraceContextHeadersExtractorTest {
         span.setTraceId("trace-id");
         span.setId("span-id");
 
-        final Map<String, String> headers = TraceContextHeadersExtractor.extractHeaders();
+        final Map<String, String> headers = TraceContextExtractor.extractHeaders();
 
         assertEquals("trace-id", headers.get(WOODY_TRACE_ID));
         assertEquals("span-id", headers.get(WOODY_SPAN_ID));
@@ -108,7 +109,7 @@ class TraceContextHeadersExtractorTest {
         traceData.getActiveSpan().getCustomMetadata()
                 .putValue(WoodyMetaHeaders.X_REQUEST_DEADLINE, "2030-12-31T23:59:59Z");
 
-        final Map<String, String> headers = TraceContextHeadersExtractor.extractHeaders();
+        final Map<String, String> headers = TraceContextExtractor.extractHeaders();
 
         assertEquals("request-123", headers.get(WOODY_META_REQUEST_ID));
         assertEquals("2030-12-31T23:59:59Z", headers.get(WOODY_META_REQUEST_DEADLINE));
@@ -122,7 +123,7 @@ class TraceContextHeadersExtractorTest {
         TraceContext.setCurrentTraceData(traceData);
 
         try {
-            TraceContextHeadersExtractor.extractHeaders();
+            TraceContextExtractor.extractHeaders();
             fail("Expected IllegalStateException");
         } catch (IllegalStateException e) {
             // Expected
@@ -142,7 +143,7 @@ class TraceContextHeadersExtractorTest {
         activeSpan.getCustomMetadata().putValue(WoodyMetaHeaders.ID, "");
         activeSpan.getCustomMetadata().putValue(WoodyMetaHeaders.USERNAME, null);
 
-        final Map<String, String> headers = TraceContextHeadersExtractor.extractHeaders();
+        final Map<String, String> headers = TraceContextExtractor.extractHeaders();
 
         assertFalse(headers.containsKey(WOODY_META_ID));
         assertFalse(headers.containsKey(WOODY_META_USERNAME));
@@ -167,7 +168,7 @@ class TraceContextHeadersExtractorTest {
         activeSpan.getCustomMetadata().putValue(WoodyMetaHeaders.EMAIL, "noreply@valitydev.com");
         activeSpan.getCustomMetadata().putValue(WoodyMetaHeaders.REALM, "/internal");
 
-        final Map<String, String> headers = TraceContextHeadersExtractor.extractHeaders();
+        final Map<String, String> headers = TraceContextExtractor.extractHeaders();
 
         assertEquals("b54a93c4-415d-4f33-a5e9-3608fd043ff4", headers.get(WOODY_META_ID));
         assertEquals("noreply@valitydev.com", headers.get(WOODY_META_USERNAME));
@@ -187,11 +188,45 @@ class TraceContextHeadersExtractorTest {
         span.setTraceId("trace-id");
         span.setId("span-id");
 
-        final Map<String, String> headers = TraceContextHeadersExtractor.extractHeaders();
+        final Map<String, String> headers = TraceContextExtractor.extractHeaders();
 
         final String traceparent = headers.get(OTEL_TRACE_PARENT);
         assertNotNull(traceparent);
         assertTrue(traceparent.matches("00-[0-9a-f]{32}-[0-9a-f]{16}-0[0-1]"));
+
+        traceData.finishOtelSpan();
+    }
+
+    @Test
+    void shouldExtractTokenPayloadFromTraceContext() {
+        final var traceData = new TraceData();
+        attachOtelSpan(traceData);
+        TraceContext.setCurrentTraceData(traceData);
+
+        final var serviceSpan = traceData.getServiceSpan().getSpan();
+        serviceSpan.setTraceId("11111111111111111111111111111111");
+        serviceSpan.setId("2222222222222222");
+        serviceSpan.setParentId("undefined");
+        var timestamp = LocalDateTime.of(2025, 1, 1, 12, 0);
+
+        final TokenPayload payload = TraceContextExtractor.extractTokenPayload(
+                "https://example.com/callback",
+                "invoice-1",
+                timestamp
+        );
+
+        assertNotNull(payload);
+        assertEquals("https://example.com/callback", payload.termUrl());
+        assertEquals("invoice-1", payload.invoiceFormatPaymentId());
+        assertEquals(timestamp, payload.timestamp());
+        assertEquals("11111111111111111111111111111111", payload.traceId());
+        assertEquals("2222222222222222", payload.spanId());
+        assertNotNull(payload.newSpanId());
+        assertFalse(payload.newSpanId().isBlank());
+        assertNotEquals(payload.spanId(), payload.newSpanId());
+        assertNotNull(payload.traceparent());
+        assertFalse(payload.traceparent().isBlank());
+        assertNull(payload.tracestate());
 
         traceData.finishOtelSpan();
     }
@@ -219,7 +254,7 @@ class TraceContextHeadersExtractorTest {
         metadata.putValue(WoodyMetaHeaders.X_REQUEST_ID, "req-12345");
         metadata.putValue(WoodyMetaHeaders.X_REQUEST_DEADLINE, "2030-01-01T00:00:00Z");
 
-        final Map<String, String> headers = TraceContextHeadersExtractor.extractHeaders();
+        final Map<String, String> headers = TraceContextExtractor.extractHeaders();
 
         assertEquals("GZyWNGugAAA", headers.get(WOODY_TRACE_ID));
         assertEquals("GZyWNGugBBB", headers.get(WOODY_SPAN_ID));
@@ -240,7 +275,7 @@ class TraceContextHeadersExtractorTest {
     void shouldFailWhenTraceContextMissing() {
         TraceContext.setCurrentTraceData(null);
 
-        assertThrows(IllegalStateException.class, TraceContextHeadersExtractor::extractHeaders);
+        assertThrows(IllegalStateException.class, TraceContextExtractor::extractHeaders);
     }
 
     @Test
@@ -249,7 +284,7 @@ class TraceContextHeadersExtractorTest {
         clearOtelSpan(traceData);
         TraceContext.setCurrentTraceData(traceData);
 
-        assertThrows(NullPointerException.class, TraceContextHeadersExtractor::extractHeaders);
+        assertThrows(NullPointerException.class, TraceContextExtractor::extractHeaders);
     }
 
     private void attachOtelSpan(TraceData traceData) {
