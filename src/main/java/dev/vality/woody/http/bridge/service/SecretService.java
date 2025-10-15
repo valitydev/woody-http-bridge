@@ -4,6 +4,7 @@ import dev.vality.adapter.common.secret.SecretObj;
 import dev.vality.adapter.common.secret.SecretRef;
 import dev.vality.adapter.common.secret.SecretValue;
 import dev.vality.adapter.common.secret.VaultSecretService;
+import dev.vality.woody.http.bridge.properties.TracingProperties;
 import dev.vality.woody.http.bridge.token.TokenPayload;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +15,7 @@ import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -33,7 +35,14 @@ public class SecretService {
 
     private final VaultSecretService vaultSecretService;
     private final String serviceName;
+    private final TracingProperties tracingProperties;
     private volatile String cachedCipherSecretKey;
+
+    public String getCipherTokenSecretKey(int port, String path) {
+        return Optional.ofNullable(tracingProperties.resolvePolicy(port, path))
+                .map(TracingProperties.TracePolicy::defaultCipherToken)
+                .orElse(getCipherTokenSecretKey());
+    }
 
     public String getCipherTokenSecretKey() {
         var cached = cachedCipherSecretKey;
