@@ -246,13 +246,6 @@ public final class WoodyTracingFilter extends OncePerRequestFilter {
     }
 
     @SneakyThrows
-    private void respondMisconfigured(HttpServletResponse response, HttpServletRequest request) {
-        var status = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
-        log.error("<- Sent [{} {}]: Tracing token mode misconfigured", status, getRequestPath(request));
-        response.sendError(status);
-    }
-
-    @SneakyThrows
     private void respondForbidden(HttpServletResponse response,
                                   String requestPath,
                                   String reason) {
