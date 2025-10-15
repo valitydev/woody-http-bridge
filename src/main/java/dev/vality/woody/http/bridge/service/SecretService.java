@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -39,8 +40,13 @@ public class SecretService {
     private volatile String cachedCipherSecretKey;
 
     public String getCipherTokenSecretKey(int port, String path) {
-        return Optional.ofNullable(tracingProperties.resolvePolicy(port, path))
+        return getCipherTokenSecretKey(tracingProperties.resolvePolicy(port, path));
+    }
+
+    public String getCipherTokenSecretKey(TracingProperties.TracePolicy tracePolicy) {
+        return Optional.ofNullable(tracePolicy)
                 .map(TracingProperties.TracePolicy::defaultCipherToken)
+                .filter(Predicate.not(String::isBlank))
                 .orElse(getCipherTokenSecretKey());
     }
 

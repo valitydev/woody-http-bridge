@@ -1,6 +1,7 @@
 package dev.vality.woody.http.bridge;
 
 import dev.vality.adapter.common.secret.VaultSecretService;
+import dev.vality.woody.http.bridge.properties.TracingProperties;
 import dev.vality.woody.http.bridge.service.SecretService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -27,7 +28,8 @@ public class VaultConfig {
     @ConditionalOnClass(VaultSecretService.class)
     @ConditionalOnMissingBean
     public SecretService secretService(VaultSecretService vaultSecretService,
-                                       @Value("${spring.application.name}") String serviceName) {
-        return new SecretService(vaultSecretService, serviceName);
+                                       @Value("${spring.application.name}") String serviceName,
+                                       TracingProperties tracingProperties) {
+        return new SecretService(vaultSecretService, serviceName, tracingProperties);
     }
 }

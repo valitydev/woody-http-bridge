@@ -208,9 +208,10 @@ public final class WoodyTracingFilter extends OncePerRequestFilter {
         if (tokenCipher == null) {
             throw new WoodyHttpBridgeException("TokenCipher is not configured " + requestPath);
         }
-        var secretKey = resolveCipherSecretKey(policy);
+        var secretKey = secretService.getCipherTokenSecretKey(policy);
         if (secretKey == null || secretKey.isBlank()) {
-            throw new WoodyHttpBridgeException("Cipher token secret key is not configured " + requestPath);
+            throw new WoodyHttpBridgeException(
+                    "secretService.getCipherTokenSecretKey(policy) is not configured " + requestPath);
         }
         final TokenPayload payload;
         try {
@@ -224,17 +225,6 @@ public final class WoodyTracingFilter extends OncePerRequestFilter {
             return null;
         }
         return payload;
-    }
-
-    private String resolveCipherSecretKey(TracePolicy policy) {
-        var inlineSecret = policy.defaultCipherToken();
-        if (inlineSecret != null && !inlineSecret.isBlank()) {
-            return inlineSecret;
-        }
-        if (secretService != null) {
-            return secretService.getCipherTokenSecretKey();
-        }
-        return null;
     }
 
     private boolean isExpired(LocalDateTime issuedAt, Duration ttl) {
