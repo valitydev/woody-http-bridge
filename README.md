@@ -52,6 +52,8 @@ Token modes overview:
 - `VAULT_TOKEN` — filter extracts a token key (via `VaultTokenKeyExtractor`), loads a plain `TokenPayload` from `SecretService` (backed by Vault), validates TTL, and restores tracing. Bean `VaultTokenKeyExtractor` can be overridden; default implementation reads the last path segment.
 - `SecretService` keeps Vault tokens in structured form (trace ids, span ids, `traceparent`, `tracestate`) and caches the cipher secret key for encrypted mode.
 
+To change how an inbound token is located (e.g., URL segment vs. header vs. body), provide your own Spring beans implementing `CipherTokenExtractor` or `VaultTokenKeyExtractor` which will replace the defaults automatically.
+
 Vault integration is optional. To bootstrap the provided Vault support enable it explicitly:
 
 ```yaml

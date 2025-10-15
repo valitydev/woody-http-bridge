@@ -26,32 +26,52 @@ import org.springframework.lang.Nullable;
 @ConditionalOnProperty(value = "woody-http-bridge.enabled", havingValue = "true", matchIfMissing = true)
 @ConditionalOnClass({FilterRegistrationBean.class, WoodyTracingFilter.class})
 @EnableConfigurationProperties(TracingProperties.class)
+/**
+ * Spring configuration that wires Woody tracing infrastructure when servlet based web applications
+ * enable {@code woody-http-bridge}. Beans declared here provide the tracing filter, token helpers and
+ * response handler while remaining conditional on user customisations.
+ */
 public class WoodyTracingConfig {
 
+    /**
+     * Creates a handler for mapping Woody trace outcomes to HTTP responses when no custom bean is present.
+     */
     @Bean
     @ConditionalOnMissingBean
     public WoodyTraceResponseHandler woodyTraceResponseHandler() {
         return new WoodyTraceResponseHandler();
     }
 
+    /**
+     * Supplies the default cipher responsible for decrypting tracing payloads.
+     */
     @Bean
     @ConditionalOnMissingBean
     public TokenCipher tokenCipher() {
         return new TokenCipher();
     }
 
+    /**
+     * Registers the default cipher token extractor if the application has not overridden it.
+     */
     @Bean
     @ConditionalOnMissingBean(CipherTokenExtractor.class)
     public CipherTokenExtractor cipherTokenExtractor() {
         return new CipherTokenExtractorImpl();
     }
 
+    /**
+     * Registers the default vault token key extractor when no alternative bean is provided.
+     */
     @Bean
     @ConditionalOnMissingBean(VaultTokenKeyExtractor.class)
     public VaultTokenKeyExtractor vaultTokenKeyExtractor() {
         return new VaultTokenKeyExtractorImpl();
     }
 
+    /**
+     * Creates the main Woody tracing filter that restores incoming contexts and enriches responses.
+     */
     @Bean
     @ConditionalOnMissingBean
     public WoodyTracingFilter woodyTracingFilter(
@@ -71,6 +91,9 @@ public class WoodyTracingConfig {
         );
     }
 
+    /**
+     * Registers the tracing filter within the servlet filter chain when custom registration is absent.
+     */
     @Bean
     @ConditionalOnMissingBean(name = "woodyTracingFilterRegistration")
     public FilterRegistrationBean<WoodyTracingFilter> woodyTracingFilterRegistration(
