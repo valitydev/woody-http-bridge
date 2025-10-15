@@ -200,13 +200,18 @@ public final class WoodyTracingFilter extends OncePerRequestFilter {
     }
 
     private TokenPayload decryptAndValidate(String token, String requestPath, TracePolicy policy) {
-        if (tokenCipher == null || secretService == null) {
+        if (tokenCipher == null) {
             log.warn("Decrypt attempt skipped due to misconfiguration for {}", requestPath);
+            return null;
+        }
+        var secretKey = resolveCipherSecretKey(policy);
+        if (secretKey == null || secretKey.isBlank()) {
+            log.warn("Cipher token secret key is not configured for {}", requestPath);
             return null;
         }
         final TokenPayload payload;
         try {
-            payload = tokenCipher.decrypt(token, secretService.getCipherTokenSecretKey());
+            payload = tokenCipher.decrypt(token, secretKey);
         } catch (Throwable ex) {
             log.warn("Failed to decrypt tracing token {}", token, ex);
             return null;
@@ -216,6 +221,17 @@ public final class WoodyTracingFilter extends OncePerRequestFilter {
             return null;
         }
         return payload;
+    }
+
+    private String resolveCipherSecretKey(TracePolicy policy) {
+        var inlineSecret = policy.defaultCipherToken();
+        if (inlineSecret != null && !inlineSecret.isBlank()) {
+            return inlineSecret;
+        }
+        if (secretService != null) {
+            return secretService.getCipherTokenSecretKey();
+        }
+        return null;
     }
 
     private boolean isExpired(LocalDateTime issuedAt, Duration ttl) {

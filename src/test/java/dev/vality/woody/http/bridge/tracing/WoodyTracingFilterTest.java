@@ -198,6 +198,46 @@ class WoodyTracingFilterTest {
     }
 
     @Test
+    void shouldUseInlineCipherSecretWhenConfigured() throws Exception {
+        tokenCipher = mock(TokenCipher.class);
+        secretService = null;
+        cipherTokenExtractor = mock(CipherTokenExtractor.class);
+        vaultTokenKeyExtractor = mock(VaultTokenKeyExtractor.class);
+        configureFilter(RequestHeaderMode.CIPHER_TOKEN, ResponseHeaderMode.OFF, null);
+        var endpoint = tracingProperties.getEndpoints().stream()
+                .filter(this::matchesDefault)
+                .findFirst()
+                .orElseThrow();
+        endpoint.setDefaultCipherToken("inline-secret");
+        endpoint.setTokenTtl("30");
+        rebuildFilter();
+
+        var request = new MockHttpServletRequest("GET", "/wachter/tokenValue");
+        request.setLocalPort(8080);
+        final var response = new MockHttpServletResponse();
+        var payload = new TokenPayload(
+                "https://example.com",
+                java.time.LocalDateTime.now(java.time.ZoneOffset.UTC),
+                "invoice-1",
+                "11111111111111111111111111111111",
+                "2222222222222222",
+                "3333333333333333",
+                "00-11111111111111111111111111111111-2222222222222222-01",
+                null
+        );
+
+        when(cipherTokenExtractor.extractToken(request)).thenReturn("tokenValue");
+        when(tokenCipher.decrypt("tokenValue", "inline-secret")).thenReturn(payload);
+
+        var chainInvoked = new java.util.concurrent.atomic.AtomicBoolean(false);
+        filter.doFilter(request, response, (req, res) -> chainInvoked.set(true));
+
+        assertTrue(chainInvoked.get());
+        assertEquals(payload, request.getAttribute(WoodyTracingFilter.CIPHER_TOKEN_ATTRIBUTE));
+        assertEquals(200, response.getStatus());
+    }
+
+    @Test
     void shouldHandleVaultTokenSuccessfully() throws Exception {
         tokenCipher = mock(TokenCipher.class);
         secretService = mock(SecretService.class);

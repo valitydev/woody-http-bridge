@@ -242,6 +242,26 @@ class TraceContextHeadersNormalizerTest {
     }
 
     @Test
+    void shouldHandleNullHeaderEnumeration() {
+        when(request.getHeaderNames()).thenReturn(null);
+
+        var normalized = TraceContextHeadersNormalizer.normalize(request);
+
+        assertTrue(normalized.isEmpty());
+    }
+
+    @Test
+    void shouldIgnoreJwtMetadataWhenAuthenticationMissing() {
+        SecurityContextHolder.setContext(securityContext);
+        when(securityContext.getAuthentication()).thenReturn(null);
+        when(request.getHeaderNames()).thenReturn(Collections.enumeration(Collections.emptyList()));
+
+        final var normalized = TraceContextHeadersNormalizer.normalize(request);
+
+        assertTrue(normalized.isEmpty());
+    }
+
+    @Test
     void shouldIgnoreNullHeaderValues() {
         when(request.getHeaderNames()).thenReturn(Collections.enumeration(List.of(
                 WOODY_TRACE_ID, WOODY_SPAN_ID
