@@ -52,7 +52,88 @@ Token modes overview:
 - `VAULT_TOKEN_EXPERIMENTAL` — filter extracts a token key (via `VaultTokenKeyExtractor`), loads a plain `TokenPayload` from `SecretService` (backed by Vault), validates TTL, and restores tracing. Bean `VaultTokenKeyExtractor` can be overridden; default implementation reads the last path segment.
 - `SecretService` keeps Vault tokens in structured form (trace ids, span ids, `traceparent`, `tracestate`) and caches the cipher secret key for encrypted mode.
 
+#### Customising token location
+
+Both token modes delegate the lookup to Spring beans so that consumers decide where the token or token key lives. Provide your own `CipherTokenExtractor` or `VaultTokenKeyExtractor` bean to switch to a different transport channel.
+
+Examples:
+
+```java
+@Component
+class HeaderTokenExtractor implements CipherTokenExtractor {
+    @Override
+    public String extractToken(HttpServletRequest request) {
+        return request.getHeader("X-Cipher-Token");
+    }
+}
+```
+
+```java
+@Component
+class QueryTokenKeyExtractor implements VaultTokenKeyExtractor {
+    @Override
+    public String extractTokenKey(HttpServletRequest request) {
+        return request.getParameter("vaultKey");
+    }
+}
+```
+
+```java
+@Component
+class BodyTokenExtractor implements CipherTokenExtractor {
+    private final ObjectMapper mapper = new ObjectMapper();
+
+    @Override
+    public String extractToken(HttpServletRequest request) {
+        try {
+            var node = mapper.readTree(request.getInputStream());
+            return node.path("cipherToken").asText(null);
+        } catch (IOException ex) {
+            throw new IllegalStateException("Unable to read cipher token", ex);
+        }
+    }
+}
+```
+
+Any of these beans automatically override the defaults registered by the starter.
+
 To change how an inbound token is located (e.g., URL segment vs. header vs. body), provide your own Spring beans implementing `CipherTokenExtractor` or `VaultTokenKeyExtractor` which will replace the defaults automatically.
+
+For `CIPHER_TOKEN_EXPERIMENTAL` it is common to embed the encrypted token directly into a callback URL. The following Java example mirrors the Kotlin helper shown in the comments and appends the encrypted token as the last path segment:
+
+```java
+@Service
+@RequiredArgsConstructor
+public class CallbackUrlManager {
+
+    private final AdapterCustomProperties properties;
+    private final TokenCipher tokenCipher;
+    private final SecretService secretService;
+    private final int restPort;
+    private final String restEndpoint;
+
+    public String initCallbackUrl(TokenPayload payload) {
+        return buildUrl(properties.getPathCallbackUrl(), encrypt(payload));
+    }
+
+    public String initRedirectUrl(TokenPayload payload) {
+        return buildUrl(properties.getPathRedirectUrl(), encrypt(payload));
+    }
+
+    private String encrypt(TokenPayload payload) {
+        String secret = secretService.getCipherTokenSecretKey(restPort, restEndpoint);
+        return tokenCipher.encrypt(payload, secret);
+    }
+
+    private String buildUrl(String path, String token) {
+        return UriComponentsBuilder
+                .fromUriString(properties.getCallbackUrl())
+                .path(path)
+                .pathSegment(token)
+                .toUriString();
+    }
+}
+```
 
 Vault integration is optional. To bootstrap the provided Vault support enable it explicitly:
 
