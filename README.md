@@ -40,16 +40,16 @@ woody-http-bridge:
 Key options:
 
 - `woody-http-bridge.enabled` 
-- `woody-http-bridge.tracing.endpoints[0].request-header-mode` — how incoming headers are interpreted. Supported values: `OFF`, `WOODY_OR_X_WOODY`, `CIPHER_TOKEN`, `VAULT_TOKEN`. `OFF` is default.
+- `woody-http-bridge.tracing.endpoints[0].request-header-mode` — how incoming headers are interpreted. Supported values: `OFF`, `WOODY_OR_X_WOODY`, `CIPHER_TOKEN_EXPERIMENTAL`, `VAULT_TOKEN_EXPERIMENTAL`. `OFF` is default.
 - `woody-http-bridge.tracing.endpoints[0].response-header-mode` — which headers are written on responses (`OFF`, `WOODY`, `X_WOODY`, `HTTP`). `OFF` is default.
 - `woody-http-bridge.tracing.endpoints[0].propagate-errors` — when `true`, exceptions bubble up; otherwise they are converted to Woody error responses.
-- `woody-http-bridge.tracing.endpoints[0].default-cipher-token` — optional fallback token (Base64 URL-encoded) used when no token is present in request for `CIPHER_TOKEN` mode.
+- `woody-http-bridge.tracing.endpoints[0].default-cipher-token` — optional fallback token (Base64 URL-encoded) used when no token is present in request for `CIPHER_TOKEN_EXPERIMENTAL` mode.
 - `woody-http-bridge.tracing.endpoints[0].token-ttl` — optional TTL in minutes for validating decrypted tokens.
 
 Token modes overview:
 
-- `CIPHER_TOKEN` — filter extracts an encrypted token from the request (via `CipherTokenExtractor`), decrypts it with `TokenCipher`, validates TTL, restores `traceparent`/`tracestate`, and runs the request inside the recovered context. Bean `CipherTokenExtractor` can be overridden; default implementation reads the last path segment.
-- `VAULT_TOKEN` — filter extracts a token key (via `VaultTokenKeyExtractor`), loads a plain `TokenPayload` from `SecretService` (backed by Vault), validates TTL, and restores tracing. Bean `VaultTokenKeyExtractor` can be overridden; default implementation reads the last path segment.
+- `CIPHER_TOKEN_EXPERIMENTAL` — filter extracts an encrypted token from the request (via `CipherTokenExtractor`), decrypts it with `TokenCipher`, validates TTL, restores `traceparent`/`tracestate`, and runs the request inside the recovered context. Bean `CipherTokenExtractor` can be overridden; default implementation reads the last path segment.
+- `VAULT_TOKEN_EXPERIMENTAL` — filter extracts a token key (via `VaultTokenKeyExtractor`), loads a plain `TokenPayload` from `SecretService` (backed by Vault), validates TTL, and restores tracing. Bean `VaultTokenKeyExtractor` can be overridden; default implementation reads the last path segment.
 - `SecretService` keeps Vault tokens in structured form (trace ids, span ids, `traceparent`, `tracestate`) and caches the cipher secret key for encrypted mode.
 
 To change how an inbound token is located (e.g., URL segment vs. header vs. body), provide your own Spring beans implementing `CipherTokenExtractor` or `VaultTokenKeyExtractor` which will replace the defaults automatically.
@@ -81,4 +81,3 @@ Disable telemetry entirely by setting `otel.enabled=false`.
 ## License
 
 Apache 2.0 — see [LICENSE](LICENSE).
-# Woody HTTP Bridge

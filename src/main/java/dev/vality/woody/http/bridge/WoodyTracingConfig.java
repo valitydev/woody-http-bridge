@@ -26,11 +26,6 @@ import org.springframework.lang.Nullable;
 @ConditionalOnProperty(value = "woody-http-bridge.enabled", havingValue = "true", matchIfMissing = true)
 @ConditionalOnClass({FilterRegistrationBean.class, WoodyTracingFilter.class})
 @EnableConfigurationProperties(TracingProperties.class)
-/**
- * Spring configuration that wires Woody tracing infrastructure when servlet based web applications
- * enable {@code woody-http-bridge}. Beans declared here provide the tracing filter, token helpers and
- * response handler while remaining conditional on user customisations.
- */
 public class WoodyTracingConfig {
 
     /**

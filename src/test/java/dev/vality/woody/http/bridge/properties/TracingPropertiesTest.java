@@ -14,7 +14,7 @@ class TracingPropertiesTest {
         var endpoint = new TracingProperties.Endpoint();
         endpoint.setPort(8080);
         endpoint.setPath("/api");
-        endpoint.setRequestHeaderMode(TracingProperties.RequestHeaderMode.CIPHER_TOKEN);
+        endpoint.setRequestHeaderMode(TracingProperties.RequestHeaderMode.CIPHER_TOKEN_EXPERIMENTAL);
         endpoint.setResponseHeaderMode(TracingProperties.ResponseHeaderMode.WOODY);
         endpoint.setDefaultCipherToken("fallback");
         endpoint.setTokenTtl("30");
@@ -24,7 +24,7 @@ class TracingPropertiesTest {
 
         assertNotNull(policy);
         assertEquals("/api/resource", policy.path());
-        assertEquals(TracingProperties.RequestHeaderMode.CIPHER_TOKEN, policy.requestHeaderMode());
+        assertEquals(TracingProperties.RequestHeaderMode.CIPHER_TOKEN_EXPERIMENTAL, policy.requestHeaderMode());
         assertEquals(TracingProperties.ResponseHeaderMode.WOODY, policy.responseHeaderMode());
         assertFalse(policy.propagateErrors());
         assertEquals("fallback", policy.defaultCipherToken());
@@ -37,7 +37,7 @@ class TracingPropertiesTest {
         var endpoint = new TracingProperties.Endpoint();
         endpoint.setPort(8080);
         endpoint.setPath("/api");
-        endpoint.setRequestHeaderMode(TracingProperties.RequestHeaderMode.CIPHER_TOKEN);
+        endpoint.setRequestHeaderMode(TracingProperties.RequestHeaderMode.CIPHER_TOKEN_EXPERIMENTAL);
         properties.getEndpoints().add(endpoint);
 
         var policy = properties.resolvePolicy(8080, "/api/resource");

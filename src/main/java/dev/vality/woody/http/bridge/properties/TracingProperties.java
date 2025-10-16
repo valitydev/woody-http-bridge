@@ -46,8 +46,8 @@ public class TracingProperties {
     public enum RequestHeaderMode {
         OFF,
         WOODY_OR_X_WOODY,
-        CIPHER_TOKEN,
-        VAULT_TOKEN
+        CIPHER_TOKEN_EXPERIMENTAL,
+        VAULT_TOKEN_EXPERIMENTAL
     }
 
     public enum ResponseHeaderMode {
@@ -62,8 +62,8 @@ public class TracingProperties {
                 .filter(endpoint -> matches(endpoint, request.getLocalPort(), getRequestPath(request)))
                 .findFirst()
                 .map(endpoint -> switch (endpoint.requestHeaderMode) {
-                    case CIPHER_TOKEN -> WoodyTracingFilter.CIPHER_TOKEN_ATTRIBUTE;
-                    case VAULT_TOKEN -> WoodyTracingFilter.VAULT_TOKEN_ATTRIBUTE;
+                    case CIPHER_TOKEN_EXPERIMENTAL -> WoodyTracingFilter.CIPHER_TOKEN_ATTRIBUTE;
+                    case VAULT_TOKEN_EXPERIMENTAL -> WoodyTracingFilter.VAULT_TOKEN_ATTRIBUTE;
                     default -> null;
                 })
                 .map(request::getAttribute)

@@ -10,9 +10,9 @@ import static dev.vality.woody.http.bridge.tracing.TraceHeadersConstants.*;
 
 @Slf4j
 @UtilityClass
-public class TraceContextHeadersValidation {
+public class TraceContextHeadersFormatter {
 
-    public LinkedHashMap<String, String> validate(Map<String, String> normalized) {
+    public LinkedHashMap<String, String> format(Map<String, String> normalized) {
         var copy = new LinkedHashMap<>(normalized);
         var traceId = copy.get(WOODY_TRACE_ID);
         if (traceId != null && traceId.equals(copy.get(WOODY_SPAN_ID))) {

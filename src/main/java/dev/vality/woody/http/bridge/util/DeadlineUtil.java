@@ -6,12 +6,16 @@ import lombok.experimental.UtilityClass;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.regex.Pattern;
 
 @UtilityClass
 @SuppressWarnings("ParameterName")
 public class DeadlineUtil {
+
+    private static final Pattern MINUTES_PATTERN = Pattern.compile("([-]?[0-9]+(?:\\.[0-9]+)?m(?!s))");
+    private static final Pattern SECONDS_PATTERN = Pattern.compile("([-]?[0-9]+(?:\\.[0-9]+)?s)");
+    private static final Pattern MILLISECONDS_PATTERN = Pattern.compile("([-]?[0-9]+(?:\\.[0-9]+)?ms)");
+    private static final Pattern NUMBER_PATTERN = Pattern.compile("[-]?[0-9]+(?:\\.[0-9]+)?");
 
     public static void checkDeadline(@Nullable String xRequestDeadline, String xRequestId) {
         if (xRequestDeadline == null) {
@@ -27,73 +31,88 @@ public class DeadlineUtil {
     }
 
     public static boolean containsRelativeValues(String xRequestDeadline, String xRequestId) {
-        return (extractMinutes(xRequestDeadline, xRequestId) + extractSeconds(xRequestDeadline, xRequestId) +
-                extractMilliseconds(xRequestDeadline, xRequestId)) > 0;
+        return extractMinutesAsMillis(xRequestDeadline, xRequestId) +
+                extractSecondsAsMillis(xRequestDeadline, xRequestId) +
+                extractMillisecondsAsMillis(xRequestDeadline, xRequestId) > 0;
     }
 
-    public static Long extractMinutes(String xRequestDeadline, String xRequestId) {
+    public static Long extractMinutesAsMillis(String xRequestDeadline, String xRequestId) {
         var format = "minutes";
 
-        checkNegativeValues(xRequestDeadline, xRequestId, "([-][0-9]+([.][0-9]+)?(?!ms)[m])", format);
+        var number = extractSingleNumber(xRequestDeadline, MINUTES_PATTERN, xRequestId, format);
 
-        var minutes = extractValue(xRequestDeadline, "([0-9]+([.][0-9]+)?(?!ms)[m])", xRequestId, format);
+        if (number == null) {
+            return 0L;
+        }
 
-        return Optional.ofNullable(minutes).map(min -> min * 60000.0).map(Double::longValue).orElse(0L);
+        var minutes = Double.parseDouble(number);
+        if (minutes < 0) {
+            throw new IllegalArgumentException(
+                    String.format("Deadline '%s' parameter has negative value, xRequestId=%s ", format, xRequestId));
+        }
+
+        return Double.valueOf(minutes * 60000.0).longValue();
     }
 
-    public static Long extractSeconds(String xRequestDeadline, String xRequestId) {
+    public static Long extractSecondsAsMillis(String xRequestDeadline, String xRequestId) {
         var format = "seconds";
 
-        checkNegativeValues(xRequestDeadline, xRequestId, "([-][0-9]+([.][0-9]+)?[s])", format);
+        var number = extractSingleNumber(xRequestDeadline, SECONDS_PATTERN, xRequestId, format);
 
-        var seconds = extractValue(xRequestDeadline, "([0-9]+([.][0-9]+)?[s])", xRequestId, format);
+        if (number == null) {
+            return 0L;
+        }
 
-        return Optional.ofNullable(seconds).map(s -> s * 1000.0).map(Double::longValue).orElse(0L);
+        var seconds = Double.parseDouble(number);
+        if (seconds < 0) {
+            throw new IllegalArgumentException(
+                    String.format("Deadline '%s' parameter has negative value, xRequestId=%s ", format, xRequestId));
+        }
+
+        return Double.valueOf(seconds * 1000.0).longValue();
     }
 
-    public static Long extractMilliseconds(String xRequestDeadline, String xRequestId) {
+    public static Long extractMillisecondsAsMillis(String xRequestDeadline, String xRequestId) {
         var format = "milliseconds";
 
-        checkNegativeValues(xRequestDeadline, xRequestId, "([-][0-9]+([.][0-9]+)?[m][s])", format);
+        var number = extractSingleNumber(xRequestDeadline, MILLISECONDS_PATTERN, xRequestId, format);
 
-        var milliseconds = extractValue(xRequestDeadline, "([0-9]+([.][0-9]+)?[m][s])", xRequestId, format);
+        if (number == null) {
+            return 0L;
+        }
 
-        if (milliseconds != null && Math.ceil(milliseconds % 1) > 0) {
+        if (number.contains(".")) {
             throw new IllegalArgumentException(
                     String.format("Deadline 'milliseconds' parameter can have only integer value, xRequestId=%s ",
                             xRequestId));
         }
 
-        return Optional.ofNullable(milliseconds).map(Double::longValue).orElse(0L);
-    }
-
-    private static void checkNegativeValues(String xRequestDeadline, String xRequestId, String regex, String format) {
-        if (!match(regex, xRequestDeadline).isEmpty()) {
+        var milliseconds = Double.parseDouble(number);
+        if (milliseconds < 0) {
             throw new IllegalArgumentException(
                     String.format("Deadline '%s' parameter has negative value, xRequestId=%s ", format, xRequestId));
         }
+
+        return Double.valueOf(milliseconds).longValue();
     }
 
-    private static Double extractValue(String xRequestDeadline, String formatRegex, String xRequestId, String format) {
-        var numberRegex = "([0-9]+([.][0-9]+)?)";
-
+    private static String extractSingleNumber(String xRequestDeadline,
+                                              Pattern formatPattern,
+                                              String xRequestId,
+                                              String format) {
         var doubles = new ArrayList<String>();
-        for (String string : match(formatRegex, xRequestDeadline)) {
-            doubles.addAll(match(numberRegex, string));
+        for (String string : match(formatPattern, xRequestDeadline)) {
+            doubles.addAll(match(NUMBER_PATTERN, string));
         }
         if (doubles.size() > 1) {
             throw new IllegalArgumentException(
                     String.format("Deadline '%s' parameter has a few relative value, xRequestId=%s ", format,
                             xRequestId));
         }
-        if (doubles.isEmpty()) {
-            return null;
-        }
-        return Double.valueOf(doubles.getFirst());
+        return doubles.isEmpty() ? null : doubles.getFirst();
     }
 
-    private static List<String> match(String regex, String data) {
-        var pattern = Pattern.compile(regex);
+    private static List<String> match(Pattern pattern, String data) {
         var matcher = pattern.matcher(data);
         var strings = new ArrayList<String>();
         while (matcher.find()) {

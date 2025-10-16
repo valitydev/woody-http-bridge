@@ -144,9 +144,9 @@ public class TraceContextHeadersNormalizer {
     private Instant getInstant(String requestDeadlineHeader, String requestIdHeader) {
         if (containsRelativeValues(requestDeadlineHeader, requestIdHeader)) {
             return Instant.now()
-                    .plus(extractMilliseconds(requestDeadlineHeader, requestIdHeader), ChronoUnit.MILLIS)
-                    .plus(extractSeconds(requestDeadlineHeader, requestIdHeader), ChronoUnit.MILLIS)
-                    .plus(extractMinutes(requestDeadlineHeader, requestIdHeader), ChronoUnit.MILLIS);
+                    .plus(extractMillisecondsAsMillis(requestDeadlineHeader, requestIdHeader), ChronoUnit.MILLIS)
+                    .plus(extractSecondsAsMillis(requestDeadlineHeader, requestIdHeader), ChronoUnit.MILLIS)
+                    .plus(extractMinutesAsMillis(requestDeadlineHeader, requestIdHeader), ChronoUnit.MILLIS);
         }
         return Instant.parse(requestDeadlineHeader);
     }

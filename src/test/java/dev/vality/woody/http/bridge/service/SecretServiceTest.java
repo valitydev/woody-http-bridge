@@ -32,7 +32,7 @@ class SecretServiceTest {
         var endpoint = new TracingProperties.Endpoint();
         endpoint.setPort(8080);
         endpoint.setPath("/api");
-        endpoint.setRequestHeaderMode(TracingProperties.RequestHeaderMode.CIPHER_TOKEN);
+        endpoint.setRequestHeaderMode(TracingProperties.RequestHeaderMode.CIPHER_TOKEN_EXPERIMENTAL);
         endpoint.setResponseHeaderMode(TracingProperties.ResponseHeaderMode.WOODY);
         var properties = new TracingProperties();
         properties.setEndpoints(List.of(endpoint));

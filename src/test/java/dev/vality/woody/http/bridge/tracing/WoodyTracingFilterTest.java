@@ -15,8 +15,6 @@ import dev.vality.woody.http.bridge.token.CipherTokenExtractor;
 import dev.vality.woody.http.bridge.token.TokenCipher;
 import dev.vality.woody.http.bridge.token.TokenPayload;
 import dev.vality.woody.http.bridge.token.VaultTokenKeyExtractor;
-import dev.vality.woody.http.bridge.tracing.WoodyTraceResponseHandler;
-import dev.vality.woody.http.bridge.tracing.WoodyTracingFilter;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
 import io.opentelemetry.context.propagation.ContextPropagators;
@@ -73,7 +71,7 @@ class WoodyTracingFilterTest {
         secretService = mock(SecretService.class);
         cipherTokenExtractor = mock(CipherTokenExtractor.class);
         vaultTokenKeyExtractor = mock(VaultTokenKeyExtractor.class);
-        configureFilter(RequestHeaderMode.CIPHER_TOKEN, ResponseHeaderMode.OFF, null);
+        configureFilter(RequestHeaderMode.CIPHER_TOKEN_EXPERIMENTAL, ResponseHeaderMode.OFF, null);
         var endpoint = tracingProperties.getEndpoints().stream()
                 .filter(this::matchesDefault)
                 .findFirst()
@@ -114,7 +112,7 @@ class WoodyTracingFilterTest {
         secretService = mock(SecretService.class);
         cipherTokenExtractor = mock(CipherTokenExtractor.class);
         vaultTokenKeyExtractor = mock(VaultTokenKeyExtractor.class);
-        configureFilter(RequestHeaderMode.CIPHER_TOKEN, ResponseHeaderMode.OFF, null);
+        configureFilter(RequestHeaderMode.CIPHER_TOKEN_EXPERIMENTAL, ResponseHeaderMode.OFF, null);
         var endpoint = tracingProperties.getEndpoints().stream()
                 .filter(this::matchesDefault)
                 .findFirst()
@@ -155,7 +153,7 @@ class WoodyTracingFilterTest {
         secretService = mock(SecretService.class);
         cipherTokenExtractor = mock(CipherTokenExtractor.class);
         vaultTokenKeyExtractor = mock(VaultTokenKeyExtractor.class);
-        configureFilter(RequestHeaderMode.CIPHER_TOKEN, ResponseHeaderMode.OFF, null);
+        configureFilter(RequestHeaderMode.CIPHER_TOKEN_EXPERIMENTAL, ResponseHeaderMode.OFF, null);
         rebuildFilter();
 
         var request = new MockHttpServletRequest("GET", "/wachter/tokenValue");
@@ -180,7 +178,7 @@ class WoodyTracingFilterTest {
         secretService = mock(SecretService.class);
         cipherTokenExtractor = mock(CipherTokenExtractor.class);
         vaultTokenKeyExtractor = mock(VaultTokenKeyExtractor.class);
-        configureFilter(RequestHeaderMode.CIPHER_TOKEN, ResponseHeaderMode.OFF, null);
+        configureFilter(RequestHeaderMode.CIPHER_TOKEN_EXPERIMENTAL, ResponseHeaderMode.OFF, null);
         rebuildFilter();
 
         var request = new MockHttpServletRequest("GET", "/wachter/");
@@ -204,7 +202,7 @@ class WoodyTracingFilterTest {
         secretService = mock(SecretService.class);
         cipherTokenExtractor = mock(CipherTokenExtractor.class);
         vaultTokenKeyExtractor = mock(VaultTokenKeyExtractor.class);
-        configureFilter(RequestHeaderMode.CIPHER_TOKEN, ResponseHeaderMode.OFF, null);
+        configureFilter(RequestHeaderMode.CIPHER_TOKEN_EXPERIMENTAL, ResponseHeaderMode.OFF, null);
         var endpoint = tracingProperties.getEndpoints().stream()
                 .filter(this::matchesDefault)
                 .findFirst()
@@ -249,7 +247,7 @@ class WoodyTracingFilterTest {
         secretService = mock(SecretService.class);
         cipherTokenExtractor = mock(CipherTokenExtractor.class);
         vaultTokenKeyExtractor = mock(VaultTokenKeyExtractor.class);
-        configureFilter(RequestHeaderMode.VAULT_TOKEN, ResponseHeaderMode.OFF, null);
+        configureFilter(RequestHeaderMode.VAULT_TOKEN_EXPERIMENTAL, ResponseHeaderMode.OFF, null);
         var endpoint = tracingProperties.getEndpoints().stream()
                 .filter(this::matchesDefault)
                 .findFirst()
@@ -289,7 +287,7 @@ class WoodyTracingFilterTest {
         secretService = mock(SecretService.class);
         cipherTokenExtractor = mock(CipherTokenExtractor.class);
         vaultTokenKeyExtractor = mock(VaultTokenKeyExtractor.class);
-        configureFilter(RequestHeaderMode.VAULT_TOKEN, ResponseHeaderMode.OFF, null);
+        configureFilter(RequestHeaderMode.VAULT_TOKEN_EXPERIMENTAL, ResponseHeaderMode.OFF, null);
         var endpoint = tracingProperties.getEndpoints().stream()
                 .filter(this::matchesDefault)
                 .findFirst()
@@ -329,7 +327,7 @@ class WoodyTracingFilterTest {
         secretService = mock(SecretService.class);
         cipherTokenExtractor = mock(CipherTokenExtractor.class);
         vaultTokenKeyExtractor = mock(VaultTokenKeyExtractor.class);
-        configureFilter(RequestHeaderMode.VAULT_TOKEN, ResponseHeaderMode.OFF, null);
+        configureFilter(RequestHeaderMode.VAULT_TOKEN_EXPERIMENTAL, ResponseHeaderMode.OFF, null);
         rebuildFilter();
 
         var request = new MockHttpServletRequest("GET", "/wachter/vaultKey");
@@ -349,7 +347,7 @@ class WoodyTracingFilterTest {
         secretService = mock(SecretService.class);
         cipherTokenExtractor = mock(CipherTokenExtractor.class);
         vaultTokenKeyExtractor = mock(VaultTokenKeyExtractor.class);
-        configureFilter(RequestHeaderMode.VAULT_TOKEN, ResponseHeaderMode.OFF, null);
+        configureFilter(RequestHeaderMode.VAULT_TOKEN_EXPERIMENTAL, ResponseHeaderMode.OFF, null);
         rebuildFilter();
 
         var request = new MockHttpServletRequest("GET", "/wachter/");
@@ -372,7 +370,7 @@ class WoodyTracingFilterTest {
         secretService = null;
         cipherTokenExtractor = mock(CipherTokenExtractor.class);
         vaultTokenKeyExtractor = mock(VaultTokenKeyExtractor.class);
-        configureFilter(RequestHeaderMode.VAULT_TOKEN, ResponseHeaderMode.OFF, null);
+        configureFilter(RequestHeaderMode.VAULT_TOKEN_EXPERIMENTAL, ResponseHeaderMode.OFF, null);
         rebuildFilter();
 
         var request = new MockHttpServletRequest("GET", "/wachter/vaultKey");

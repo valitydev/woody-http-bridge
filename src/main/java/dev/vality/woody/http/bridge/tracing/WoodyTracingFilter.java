@@ -66,8 +66,8 @@ public final class WoodyTracingFilter extends OncePerRequestFilter {
         switch (policy.requestHeaderMode()) {
             case OFF -> handleWithoutTraceRestore(request, response, filterChain, policy);
             case WOODY_OR_X_WOODY -> handleWithTraceRestore(request, response, filterChain, policy);
-            case CIPHER_TOKEN -> handleCipherToken(request, response, filterChain, policy);
-            case VAULT_TOKEN -> handleVaultToken(request, response, filterChain, policy);
+            case CIPHER_TOKEN_EXPERIMENTAL -> handleCipherToken(request, response, filterChain, policy);
+            case VAULT_TOKEN_EXPERIMENTAL -> handleVaultToken(request, response, filterChain, policy);
             default -> filterChain.doFilter(request, response);
         }
     }
@@ -88,7 +88,7 @@ public final class WoodyTracingFilter extends OncePerRequestFilter {
                                         FilterChain filterChain,
                                         TracePolicy policy) {
         var normalized = TraceContextHeadersNormalizer.normalize(request);
-        var headersForTrace = TraceContextHeadersValidation.validate(normalized);
+        var headersForTrace = TraceContextHeadersFormatter.format(normalized);
         var restoredTraceData = TraceContextRestorer.restoreTraceData(headersForTrace);
         WFlow.create(() -> {
             logReceived(request);
