@@ -1,5 +1,7 @@
 package dev.vality.woody.http.bridge.service;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import dev.vality.adapter.common.secret.SecretObj;
 import dev.vality.adapter.common.secret.SecretRef;
 import dev.vality.adapter.common.secret.SecretValue;
@@ -9,6 +11,7 @@ import dev.vality.woody.http.bridge.token.TokenPayload;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -37,7 +40,9 @@ public class SecretService {
     private final VaultSecretService vaultSecretService;
     private final String serviceName;
     private final TracingProperties tracingProperties;
-    private volatile String cachedCipherSecretKey;
+    private final Cache<String, String> cipherSecretCache = Caffeine.newBuilder()
+            .expireAfterWrite(Duration.ofMinutes(1))
+            .build();
 
     public String getCipherTokenSecretKey(int port, String path) {
         return getCipherTokenSecretKey(tracingProperties.resolvePolicy(port, path));
@@ -51,18 +56,13 @@ public class SecretService {
     }
 
     public String getCipherTokenSecretKey() {
-        var cached = cachedCipherSecretKey;
-        if (cached != null) {
-            return cached;
-        }
-        synchronized (this) {
-            if (cachedCipherSecretKey == null) {
-                cachedCipherSecretKey = vaultSecretService
-                        .getSecret(serviceName, new SecretRef(CIPHER_TOKEN, SECRET_KEY))
-                        .getValue();
-            }
-            return cachedCipherSecretKey;
-        }
+        return cipherSecretCache.get(serviceName, ignored -> loadCipherSecretKey());
+    }
+
+    private String loadCipherSecretKey() {
+        return vaultSecretService
+                .getSecret(serviceName, new SecretRef(CIPHER_TOKEN, SECRET_KEY))
+                .getValue();
     }
 
     public TokenPayload getVaultToken(String tokenKey) {

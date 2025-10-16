@@ -43,12 +43,12 @@
     {
       "name": "woody-http-bridge.tracing.endpoints[].request-header-mode",
       "type": "dev.vality.woody.http.bridge.properties.TracingProperties$RequestHeaderMode",
-      "description": "How incoming tracing headers or tokens should be interpreted." 
+      "description": "How incoming tracing hints are handled: OFF | WOODY_OR_X_WOODY | CIPHER_TOKEN_EXPERIMENTAL | VAULT_TOKEN_EXPERIMENTAL." 
     },
     {
       "name": "woody-http-bridge.tracing.endpoints[].response-header-mode",
       "type": "dev.vality.woody.http.bridge.properties.TracingProperties$ResponseHeaderMode",
-      "description": "Which tracing headers are written to the HTTP response." 
+      "description": "Which tracing headers are written on responses: OFF | WOODY | X_WOODY | HTTP." 
     },
     {
       "name": "woody-http-bridge.tracing.endpoints[].propagate-errors",

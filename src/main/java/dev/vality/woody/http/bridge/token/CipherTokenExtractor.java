@@ -6,7 +6,9 @@ import jakarta.servlet.http.HttpServletRequest;
  * Strategy interface used by {@code CIPHER_TOKEN_EXPERIMENTAL} mode to discover the encrypted token that should be
  * decrypted by {@link TokenCipher}. The starter ships with {@link CipherTokenExtractorImpl} which reads the token from
  * the final path segment, but applications are free to supply their own bean and choose any transport channel that
- * fits their API contract (path, header, query parameter, body, and so on).
+ * fits their API contract (path, header, query parameter, body, and so on). Bear in mind that encrypted tokens can be
+ * lengthy; when embedding them into URLs or other constrained carriers ensure the resulting string does not exceed the
+ * consumer's limits.
  *
  * <p>Example implementations:</p>
  * <ul>

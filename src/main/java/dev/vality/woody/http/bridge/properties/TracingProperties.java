@@ -43,17 +43,55 @@ public class TracingProperties {
 
     }
 
+    /**
+     * Controls how incoming requests are inspected to recover Woody tracing context.
+     */
     public enum RequestHeaderMode {
+        /**
+         * Disable request enrichment entirely. Incoming Woody headers or tokens are ignored and a fresh context is
+         * created for every request.
+         */
         OFF,
+        /**
+         * Accept tracing headers in the Woody canonical form ("Woody-") or the external "X-Woody-" aliases. Headers
+         * are passed through as-is without token processing.
+         */
         WOODY_OR_X_WOODY,
+        /**
+         * Expect an encrypted token that is resolved via {@code CipherTokenExtractor} and decrypted with {@link
+         * dev.vality.woody.http.bridge.token.TokenCipher}. The resulting {@link TokenPayload} provides the trace
+         * context. Remember that encrypted tokens can be long (especially when Base64 URL encoded) and might exceed
+         * storage limits for certain transports such as URLs restricted to 255 characters.
+         */
         CIPHER_TOKEN_EXPERIMENTAL,
+        /**
+         * Expect a token key that {@code VaultTokenKeyExtractor} resolves and {@link
+         * dev.vality.woody.http.bridge.service.SecretService} loads from Vault, yielding a {@link TokenPayload}
+         * containing tracing data. Be mindful that high-traffic services or long-lived tokens can place significant
+         * load on Vault due to the volume of stored entries.
+         */
         VAULT_TOKEN_EXPERIMENTAL
     }
 
+    /**
+     * Controls which Woody headers are written back on HTTP responses.
+     */
     public enum ResponseHeaderMode {
+        /**
+         * Disable response propagation. No Woody headers are emitted.
+         */
         OFF,
+        /**
+         * Emit internal Woody headers using the canonical "Woody-" prefix.
+         */
         WOODY,
+        /**
+         * Emit external Woody headers using the "X-Woody-" prefix for compatibility with edge proxies.
+         */
         X_WOODY,
+        /**
+         * Emit a reduced HTTP-friendly header set (`traceparent`/`tracestate`) suitable for standard tracing tools.
+         */
         HTTP
     }
 
