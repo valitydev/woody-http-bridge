@@ -1,0 +1,69 @@
+{
+  "groups": [
+    {
+      "name": "woody-http-bridge",
+      "type": "dev.vality.woody.http.bridge.WoodyTracingConfig",
+      "description": "Woody HTTP Bridge auto-configuration." 
+    },
+    {
+      "name": "woody-http-bridge.tracing",
+      "type": "dev.vality.woody.http.bridge.properties.TracingProperties",
+      "sourceType": "dev.vality.woody.http.bridge.properties.TracingProperties",
+      "description": "Tracing options for Woody HTTP Bridge." 
+    },
+    {
+      "name": "woody-http-bridge.tracing.endpoints",
+      "type": "java.util.List",
+      "sourceType": "dev.vality.woody.http.bridge.properties.TracingProperties",
+      "description": "Endpoints to which Woody tracing should be applied." 
+    }
+  ],
+  "properties": [
+    {
+      "name": "woody-http-bridge.enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": true,
+      "description": "Whether the Woody HTTP Bridge servlet filter should be registered." 
+    },
+    {
+      "name": "woody-http-bridge.tracing.endpoints",
+      "type": "java.util.List<dev.vality.woody.http.bridge.properties.TracingProperties$Endpoint>",
+      "description": "List of endpoint policies describing how tracing headers are processed." 
+    },
+    {
+      "name": "woody-http-bridge.tracing.endpoints[].port",
+      "type": "java.lang.Integer",
+      "description": "Local server port to which the policy applies." 
+    },
+    {
+      "name": "woody-http-bridge.tracing.endpoints[].path",
+      "type": "java.lang.String",
+      "description": "Request path prefix that should match the incoming request." 
+    },
+    {
+      "name": "woody-http-bridge.tracing.endpoints[].request-header-mode",
+      "type": "dev.vality.woody.http.bridge.properties.TracingProperties$RequestHeaderMode",
+      "description": "How incoming tracing hints are handled: OFF | WOODY_OR_X_WOODY | CIPHER_TOKEN_EXPERIMENTAL | VAULT_TOKEN_EXPERIMENTAL." 
+    },
+    {
+      "name": "woody-http-bridge.tracing.endpoints[].response-header-mode",
+      "type": "dev.vality.woody.http.bridge.properties.TracingProperties$ResponseHeaderMode",
+      "description": "Which tracing headers are written on responses: OFF | WOODY | X_WOODY | HTTP." 
+    },
+    {
+      "name": "woody-http-bridge.tracing.endpoints[].propagate-errors",
+      "type": "java.lang.Boolean",
+      "description": "When true, exceptions are rethrown to the caller instead of being converted to Woody error responses." 
+    },
+    {
+      "name": "woody-http-bridge.tracing.endpoints[].default-cipher-token",
+      "type": "java.lang.String",
+      "description": "Optional inline cipher secret to decrypt tracing tokens when Vault is not used." 
+    },
+    {
+      "name": "woody-http-bridge.tracing.endpoints[].token-ttl",
+      "type": "java.lang.String",
+      "description": "Optional token TTL in minutes used to validate decrypted tokens." 
+    }
+  ]
+}
