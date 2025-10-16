@@ -12,7 +12,7 @@
     <packaging>jar</packaging>
 
     <artifactId>woody-http-bridge</artifactId>
-    <version>0.0.10</version>
+    <version>0.0.11</version>
 
     <name>woody-http-bridge</name>
     <description>woody-http-bridge</description>
@@ -39,7 +39,7 @@
     </scm>
 
     <properties>
-        <woody.version>2.0.12</woody.version>
+        <woody.version>2.0.13</woody.version>
         <geck.version>1.0.2</geck.version>
         <otel.instrumentation.version>2.15.0</otel.instrumentation.version>
         <spring-boot.version>3.5.4</spring-boot.version>
