@@ -12,7 +12,7 @@
     <packaging>jar</packaging>
 
     <artifactId>woody-http-bridge</artifactId>
-    <version>0.0.13</version>
+    <version>0.0.14</version>
 
     <name>woody-http-bridge</name>
     <description>woody-http-bridge</description>
@@ -41,8 +41,8 @@
     <properties>
         <woody.version>2.0.15</woody.version>
         <geck.version>1.0.2</geck.version>
-        <otel.instrumentation.version>2.15.0</otel.instrumentation.version>
-        <spring-boot.version>3.5.4</spring-boot.version>
+        <otel.instrumentation.version>2.20.1</otel.instrumentation.version>
+        <spring-boot.version>3.5.6</spring-boot.version>
     </properties>
 
     <dependencyManagement>
@@ -118,7 +118,7 @@
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
-            <version>3.1.8</version>
+            <version>3.2.2</version>
         </dependency>
 
         <!--third party-->
